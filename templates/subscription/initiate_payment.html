@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+{% block title %}Paiement Mobile Money – AutoRepair{% endblock %}
+
+{% block extra_css %}
+<style>
+.momo-card { border: 2px solid #dee2e6; border-radius: 10px; padding: 1.2rem;
+             cursor: pointer; transition: all .2s; }
+.momo-card:hover, .momo-card.selected { border-color: #1F3864; background:#EFF4FB; }
+.momo-logo { font-size: 1.8rem; }
+.summary-box { background:#F8F9FA; border-radius:10px; padding:1.5rem;
+               border-left:4px solid #1F3864; }
+.step-badge { background:#1F3864; color:#fff; border-radius:50%;
+              width:28px; height:28px; display:inline-flex;
+              align-items:center; justify-content:center; font-size:.85rem; font-weight:700; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+  <a href="{% url 'subscription:choose_plan' %}" class="btn btn-sm btn-outline-secondary mb-3">
+    <i class="fas fa-arrow-left"></i> Retour aux formules
+  </a>
+
+  <div class="page-header">
+    <h1><i class="fas fa-mobile-alt"></i> Paiement Mobile Money</h1>
+    <p class="mb-0">Finalisez votre abonnement pour {{ garage.name }}</p>
+  </div>
+
+  <div class="row">
+    <!-- Formulaire -->
+    <div class="col-lg-7 mb-4">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="fas fa-credit-card"></i> Informations de paiement</h5>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+
+            <!-- Choix opérateur -->
+            <div class="mb-4">
+              <label class="form-label fw-semibold">Choisissez votre opérateur</label>
+              <div class="row g-3">
+                <div class="col-6">
+                  <label class="momo-card text-center d-block" id="card-orange">
+                    <input type="radio" name="method" value="orange_money"
+                           class="d-none" onchange="selectMethod(this, 'card-orange')">
+                    <div class="momo-logo">🟠</div>
+                    <div class="fw-bold mt-1">Orange Money</div>
+                    <small class="text-muted">#144#</small>
+                  </label>
+                </div>
+                <div class="col-6">
+                  <label class="momo-card text-center d-block" id="card-mtn">
+                    <input type="radio" name="method" value="mtn_momo"
+                           class="d-none" onchange="selectMethod(this, 'card-mtn')">
+                    <div class="momo-logo">🟡</div>
+                    <div class="fw-bold mt-1">MTN Mobile Money</div>
+                    <small class="text-muted">*126#</small>
+                  </label>
+                </div>
+              </div>
+              {% if form.method.errors %}
+              <div class="text-danger small mt-1">{{ form.method.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <!-- Numéro téléphone -->
+            <div class="mb-4">
+              <label class="form-label fw-semibold">{{ form.phone_number.label }}</label>
+              {{ form.phone_number }}
+              <small class="text-muted">{{ form.phone_number.help_text }}</small>
+              {% if form.phone_number.errors %}
+              <div class="text-danger small mt-1">{{ form.phone_number.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <!-- Instructions paiement -->
+            <div class="card mb-4" style="background:#FFF8E7;border:1px solid #C9A84C;">
+              <div class="card-body py-3">
+                <h6 class="mb-2"><i class="fas fa-info-circle text-warning"></i> Procédure de paiement</h6>
+                <div id="instructions-orange" class="d-none">
+                  <p class="small mb-1"><span class="step-badge">1</span> Composez <strong>#144#</strong> sur votre téléphone Orange</p>
+                  <p class="small mb-1"><span class="step-badge">2</span> Sélectionnez <strong>Transfert d'argent</strong></p>
+                  <p class="small mb-1"><span class="step-badge">3</span> Entrez le numéro du compte AutoRepair</p>
+                  <p class="small mb-0"><span class="step-badge">4</span> Montant : <strong>{{ plan.price|floatformat:0 }} FCFA</strong></p>
+                </div>
+                <div id="instructions-mtn" class="d-none">
+                  <p class="small mb-1"><span class="step-badge">1</span> Composez <strong>*126#</strong> sur votre téléphone MTN</p>
+                  <p class="small mb-1"><span class="step-badge">2</span> Sélectionnez <strong>Transfert</strong></p>
+                  <p class="small mb-1"><span class="step-badge">3</span> Entrez le numéro du compte AutoRepair</p>
+                  <p class="small mb-0"><span class="step-badge">4</span> Montant : <strong>{{ plan.price|floatformat:0 }} FCFA</strong></p>
+                </div>
+                <p class="small text-muted mb-0" id="instructions-default">
+                  Sélectionnez votre opérateur pour voir les instructions.
+                </p>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 btn-lg">
+              <i class="fas fa-paper-plane"></i> Soumettre ma demande de paiement
+            </button>
+            <p class="text-muted small text-center mt-2">
+              Votre demande sera validée par un administrateur dans les 24h ouvrées.
+            </p>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Résumé commande -->
+    <div class="col-lg-5 mb-4">
+      <div class="summary-box">
+        <h6 class="fw-bold mb-3"><i class="fas fa-receipt"></i> Récapitulatif</h6>
+        <table class="table table-borderless mb-0">
+          <tr>
+            <td class="text-muted">Garage</td>
+            <td class="fw-semibold">{{ garage.name }}</td>
+          </tr>
+          <tr>
+            <td class="text-muted">Formule</td>
+            <td class="fw-semibold">{{ plan.name }}</td>
+          </tr>
+          <tr>
+            <td class="text-muted">Durée</td>
+            <td>{{ plan.duration_days }} jours</td>
+          </tr>
+          <tr class="border-top">
+            <td class="fw-bold">Total</td>
+            <td class="fw-bold text-primary fs-5">{{ plan.price|floatformat:0 }} FCFA</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="card mt-3">
+        <div class="card-body py-3">
+          <h6 class="mb-2"><i class="fas fa-shield-alt text-success"></i> Paiement sécurisé</h6>
+          <p class="small text-muted mb-0">
+            Vos informations de paiement ne sont jamais stockées.
+            La validation est effectuée manuellement par notre équipe dans les 24h.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function selectMethod(input, cardId) {
+  document.querySelectorAll('.momo-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById(cardId).classList.add('selected');
+  document.getElementById('instructions-orange').classList.add('d-none');
+  document.getElementById('instructions-mtn').classList.add('d-none');
+  document.getElementById('instructions-default').classList.add('d-none');
+  if (input.value === 'orange_money') {
+    document.getElementById('instructions-orange').classList.remove('d-none');
+  } else {
+    document.getElementById('instructions-mtn').classList.remove('d-none');
+  }
+}
+</script>
+{% endblock %}

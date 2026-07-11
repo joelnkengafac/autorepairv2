@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+{% block title %}Abonnements – Admin AutoRepair{% endblock %}
+
+{% block extra_css %}
+<style>
+.status-actif    { background:#D6EFE2; color:#1E7145; padding:3px 10px; border-radius:6px; font-size:.85rem; font-weight:600; }
+.status-expire   { background:#F8D7DA; color:#721c24; padding:3px 10px; border-radius:6px; font-size:.85rem; font-weight:600; }
+.status-attente  { background:#FFF3CD; color:#856404; padding:3px 10px; border-radius:6px; font-size:.85rem; font-weight:600; }
+.status-annule   { background:#E2E3E5; color:#383d41; padding:3px 10px; border-radius:6px; font-size:.85rem; font-weight:600; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex" style="min-height:calc(100vh - 56px);">
+  {% include 'admin_custom/sidebar.html' with active='subscriptions' %}
+  <div style="padding:2rem;flex-grow:1;">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h4 class="fw-bold mb-1"><i class="fas fa-list-alt"></i> Tous les abonnements</h4>
+      <p class="text-muted mb-0">Vue consolidée de tous les abonnements garages</p>
+    </div>
+    <a href="{% url 'subscription:admin_payments' %}" class="btn btn-primary">
+      <i class="fas fa-cash-register"></i> Paiements en attente
+    </a>
+  </div>
+
+  <!-- Stats -->
+  <div class="row mb-4 g-3">
+    {% with actifs=subscriptions|length %}
+    <div class="col-md-3">
+      <div class="card text-center border-success">
+        <div class="card-body py-3">
+          <div class="fs-2 fw-bold text-success">
+            {{ subscriptions|length }}
+          </div>
+          <div class="text-muted small">Total abonnements</div>
+        </div>
+      </div>
+    </div>
+    {% endwith %}
+    <div class="col-md-3">
+      <div class="card text-center border-primary">
+        <div class="card-body py-3">
+          <div class="fs-2 fw-bold text-primary">
+            {{ active_count }}
+            {{ subscriptions|dictsort:"status"|dictsortreversed:"status"|length }}
+          </div>
+          <div class="text-muted small">Actifs</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtre rapide -->
+  <div class="d-flex gap-2 flex-wrap mb-3">
+    <button class="btn btn-sm btn-outline-secondary filter-btn active" data-filter="all">
+      Tous
+    </button>
+    <button class="btn btn-sm btn-outline-success filter-btn" data-filter="actif">
+      Actifs
+    </button>
+    <button class="btn btn-sm btn-outline-warning filter-btn" data-filter="en_attente">
+      En attente
+    </button>
+    <button class="btn btn-sm btn-outline-danger filter-btn" data-filter="expire">
+      Expirés
+    </button>
+    <button class="btn btn-sm btn-outline-secondary filter-btn" data-filter="annule">
+      Annulés
+    </button>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle" id="subTable">
+      <thead class="table-dark">
+        <tr>
+          <th>Garage</th>
+          <th>Ville</th>
+          <th>Formule</th>
+          <th>Statut</th>
+          <th>Début</th>
+          <th>Expiration</th>
+          <th>Jours restants</th>
+          <th>Paiement</th>
+          <th>Montant</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sub in subscriptions %}
+        <tr data-status="{{ sub.status }}">
+          <td>
+            <strong>{{ sub.garage.name }}</strong><br>
+            <small class="text-muted">{{ sub.garage.user.username }}</small>
+          </td>
+          <td>{{ sub.garage.city }}</td>
+          <td>{{ sub.plan.name }}</td>
+          <td>
+            <span class="status-{{ sub.status }}">{{ sub.get_status_display }}</span>
+          </td>
+          <td>{{ sub.start_date|date:"d/m/Y"|default:"—" }}</td>
+          <td>
+            {% if sub.end_date %}
+              <span class="{% if sub.days_remaining <= 7 and sub.status == 'actif' %}text-danger fw-bold{% endif %}">
+                {{ sub.end_date|date:"d/m/Y" }}
+              </span>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if sub.status == 'actif' %}
+              <span class="badge {% if sub.days_remaining <= 7 %}bg-danger{% elif sub.days_remaining <= 30 %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                {{ sub.days_remaining }}j
+              </span>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% for p in sub.payments.all %}
+              <span class="badge {% if p.status == 'valide' %}bg-success{% elif p.status == 'en_attente' %}bg-warning text-dark{% else %}bg-danger{% endif %} me-1">
+                {{ p.get_status_display }}
+              </span>
+            {% empty %}—{% endfor %}
+          </td>
+          <td>
+            {% for p in sub.payments.all %}
+              {% if p.status == 'valide' %}
+                <strong>{{ p.amount|floatformat:0 }} FCFA</strong>
+              {% endif %}
+            {% empty %}—{% endfor %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="9" class="text-center py-5 text-muted">
+            Aucun abonnement enregistré.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Filtre rapide par statut
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    const filter = this.dataset.filter;
+    document.querySelectorAll('#subTable tbody tr').forEach(row => {
+      if (filter === 'all' || row.dataset.status === filter) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

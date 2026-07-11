@@ -1,0 +1,38 @@
+[
+  {
+    "model": "subscription.plan",
+    "pk": 1,
+    "fields": {
+      "name": "Mensuel",
+      "period": "mensuel",
+      "price": "5000",
+      "duration_days": 30,
+      "description": "Idéal pour découvrir la plateforme. Renouvelable chaque mois.",
+      "is_active": true
+    }
+  },
+  {
+    "model": "subscription.plan",
+    "pk": 2,
+    "fields": {
+      "name": "Trimestriel",
+      "period": "trimestriel",
+      "price": "12000",
+      "duration_days": 90,
+      "description": "3 mois de visibilité. Économisez 3 000 FCFA par rapport au mensuel.",
+      "is_active": true
+    }
+  },
+  {
+    "model": "subscription.plan",
+    "pk": 3,
+    "fields": {
+      "name": "Annuel",
+      "period": "annuel",
+      "price": "40000",
+      "duration_days": 365,
+      "description": "La meilleure valeur. 12 mois de visibilité totale. Économisez 20 000 FCFA.",
+      "is_active": true
+    }
+  }
+]

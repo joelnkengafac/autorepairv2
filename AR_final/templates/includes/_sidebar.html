@@ -1,0 +1,99 @@
+<aside class="main-sidebar sidebar-dark-primary elevation-4">
+    <!-- Brand Logo -->
+    <a href="{% url 'core:home' %}" class="brand-link">
+        <span class="brand-text font-weight-light">AutoRepair</span>
+    </a>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <!-- User Panel -->
+        <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+            <div class="image">
+                {% if user.avatar %}
+                    <img src="{{ user.avatar.url }}" class="img-circle elevation-2" alt="Avatar">
+                {% else %}
+                    <i class="fas fa-user-circle fa-2x text-gray"></i>
+                {% endif %}
+            </div>
+            <div class="info">
+                <a href="#" class="d-block">{{ user.username }}</a>
+                <span class="badge badge-info">{{ user.get_role_display }}</span>
+            </div>
+        </div>
+
+        <!-- Sidebar Menu -->
+        <nav class="mt-2">
+            <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
+                
+                {% if user.role == 'client' %}
+                <!-- Menu Client -->
+                <li class="nav-item">
+                    <a href="{% url 'accounts:dashboard_client' %}" class="nav-link active">
+                        <i class="nav-icon fas fa-tachometer-alt"></i>
+                        <p>Tableau de bord</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-search"></i>
+                        <p>Rechercher un garage</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-history"></i>
+                        <p>Mes rendez-vous</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-star"></i>
+                        <p>Mes avis</p>
+                    </a>
+                </li>
+
+                {% elif user.role == 'garage' %}
+                <!-- Menu Garage -->
+                <li class="nav-item">
+                    <a href="{% url 'accounts:dashboard_garage' %}" class="nav-link active">
+                        <i class="nav-icon fas fa-tachometer-alt"></i>
+                        <p>Tableau de bord</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-cog"></i>
+                        <p>Gérer mon garage</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-wrench"></i>
+                        <p>Mes services</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-comments"></i>
+                        <p>Avis clients</p>
+                    </a>
+                </li>
+                {% endif %}
+
+                <!-- Menu commun -->
+                <li class="nav-item mt-3">
+                    <a href="{% url 'accounts:profile_edit' %}" class="nav-link">
+                        <i class="nav-icon fas fa-user-cog"></i>
+                        <p>Mon profil</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'accounts:logout' %}" class="nav-link text-danger">
+                        <i class="nav-icon fas fa-sign-out-alt"></i>
+                        <p>Déconnexion</p>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</aside>

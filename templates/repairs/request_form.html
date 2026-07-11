@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Demande de réparation – {{ garage.name }}{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="page-header">
+        <h1><i class="fas fa-tools"></i> Demande de réparation</h1>
+        <p class="mb-0">Garage : <strong>{{ garage.name }}</strong></p>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <form method="post">
+                        {% csrf_token %}
+                        {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.errors %}
+                                <div class="text-danger small mt-1">{{ field.errors }}</div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i> Envoyer la demande
+                            </button>
+                            <a href="{% url 'garages:garage_detail' garage.pk %}" class="btn btn-outline-secondary">
+                                Annuler
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

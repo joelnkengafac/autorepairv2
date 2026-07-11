@@ -1,0 +1,57 @@
+<nav class="main-header navbar navbar-expand navbar-white navbar-light">
+    <!-- Left navbar links -->
+    <ul class="navbar-nav">
+        {% if user.is_authenticated %}
+        <li class="nav-item">
+            <a class="nav-link" data-widget="pushmenu" href="#" role="button">
+                <i class="fas fa-bars"></i>
+            </a>
+        </li>
+        {% endif %}
+        <li class="nav-item d-none d-sm-inline-block">
+            <a href="{% url 'core:home' %}" class="nav-link">Accueil</a>
+        </li>
+        <li class="nav-item d-none d-sm-inline-block">
+            <a href="#" class="nav-link">Rechercher un garage</a>
+        </li>
+    </ul>
+
+    <!-- Right navbar links -->
+    <ul class="navbar-nav ml-auto">
+        {% if user.is_authenticated %}
+        <!-- User Dropdown -->
+        <li class="nav-item dropdown user-menu">
+            <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
+                {% if user.avatar %}
+                    <img src="{{ user.avatar.url }}" class="user-image img-circle elevation-2" alt="Avatar">
+                {% else %}
+                    <i class="fas fa-user-circle fa-2x"></i>
+                {% endif %}
+                <span class="d-none d-md-inline">{{ user.username }}</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+                <li class="user-header bg-primary">
+                    {% if user.avatar %}
+                        <img src="{{ user.avatar.url }}" class="img-circle elevation-2" alt="Avatar">
+                    {% endif %}
+                    <p>
+                        {{ user.get_full_name|default:user.username }}
+                        <small>Membre depuis {{ user.date_joined|date:"F Y" }}</small>
+                    </p>
+                </li>
+                <li class="user-footer">
+                    <a href="#" class="btn btn-default btn-flat">Profil</a>
+                    <a href="{% url 'accounts:logout' %}" class="btn btn-default btn-flat float-right">Déconnexion</a>
+                </li>
+            </ul>
+        </li>
+        {% else %}
+        <li class="nav-item">
+            <a href="{% url 'accounts:login' %}" class="nav-link">Connexion</a>
+        </li>
+        <li class="nav-item">
+            <a href="{% url 'accounts:register' %}" class="nav-link btn btn-primary text-white">Inscription</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>

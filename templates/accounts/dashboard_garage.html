@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block title %}Espace Garage - AutoRepair{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="page-header">
+        <h1><i class="fas fa-wrench"></i> Espace Professionnel</h1>
+        <p class="mb-0">Gérez votre garage et vos services</p>
+    </div>
+
+    {% if not garage %}
+    <!-- Garage non configuré -->
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i> 
+        <strong>Attention :</strong> Votre profil garage n'est pas encore configuré.
+    </div>
+    
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-garage fa-4x text-muted mb-4"></i>
+            <h4>Créez votre fiche garage</h4>
+            <p class="text-muted mb-4">Ajoutez vos informations pour apparaître dans les recherches</p>
+            <a href="{% url 'garages:garage_create' %}" class="btn btn-gold btn-lg">
+                <i class="fas fa-plus"></i> Créer mon garage
+            </a>
+        </div>
+    </div>
+    
+    {% else %}
+    <!-- Garage configuré -->
+    <div class="row">
+        <!-- Stats -->
+        <div class="col-md-3 mb-4">
+            <div class="card text-center border-primary">
+                <div class="card-body">
+                    <h2 class="text-primary mb-0">12</h2>
+                    <p class="text-muted mb-0">Avis clients</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card text-center border-success">
+                <div class="card-body">
+                    <h2 class="text-success mb-0">4.8</h2>
+                    <p class="text-muted mb-0">Note moyenne</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card text-center border-warning">
+                <div class="card-body">
+                    <h2 class="text-warning mb-0">5</h2>
+                    <p class="text-muted mb-0">Services</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card text-center border-info">
+                <div class="card-body">
+                    <h2 class="text-info mb-0">24</h2>
+                    <p class="text-muted mb-0">Visites ce mois</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions rapides -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-bolt"></i> Actions rapides</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <a href="#" class="btn btn-outline-primary w-100">
+                        <i class="fas fa-edit"></i><br>Modifier mon garage
+                    </a>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <a href="{% url 'subscription:dashboard' %}" class="btn btn-outline-primary w-100">
+                        <i class="fas fa-crown"></i><br>Mon abonnement
+                    </a>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <a href="{% url 'repairs:garage_requests' %}" class="btn btn-outline-success w-100">
+                        <i class="fas fa-clipboard-list"></i><br>Demandes reçues
+                    </a>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <a href="{% url 'messaging:inbox' %}" class="btn btn-outline-warning w-100">
+                        <i class="fas fa-envelope"></i><br>Messagerie
+                    </a>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <a href="#" class="btn btn-outline-info w-100">
+                        <i class="fas fa-chart-line"></i><br>Statistiques
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Infos garage -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-info-circle"></i> Informations</h5>
+        </div>
+        <div class="card-body">
+            <dl class="row">
+                <dt class="col-sm-3">Nom</dt>
+                <dd class="col-sm-9">{{ garage.name }}</dd>
+                
+                <dt class="col-sm-3">Adresse</dt>
+                <dd class="col-sm-9">{{ garage.address }}, {{ garage.zip_code }} {{ garage.city }}</dd>
+                
+                <dt class="col-sm-3">Téléphone</dt>
+                <dd class="col-sm-9">{{ garage.phone_number|default:"Non renseigné" }}</dd>
+                
+                <dt class="col-sm-3">Statut</dt>
+                <dd class="col-sm-9">
+                    {% if garage.is_open %}
+                        <span class="badge bg-success">Ouvert</span>
+                    {% else %}
+                        <span class="badge bg-danger">Fermé</span>
+                    {% endif %}
+                </dd>
+            </dl>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

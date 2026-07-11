@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% block title %}Mon abonnement – AutoRepair{% endblock %}
+
+{% block extra_css %}
+<style>
+.status-active  { background:#D6EFE2; color:#1E7145; border-radius:6px; padding:4px 12px; font-weight:600; }
+.status-pending { background:#FFF3CD; color:#856404; border-radius:6px; padding:4px 12px; font-weight:600; }
+.status-expired { background:#F8D7DA; color:#721c24; border-radius:6px; padding:4px 12px; font-weight:600; }
+.status-annule  { background:#E2E3E5; color:#383d41; border-radius:6px; padding:4px 12px; font-weight:600; }
+.progress-sub   { height: 10px; border-radius:6px; }
+.info-card      { border-left: 4px solid #1F3864; background:#EFF4FB;
+                  border-radius:8px; padding:1.2rem 1.5rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+  <div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+      <h1><i class="fas fa-crown"></i> Mon abonnement</h1>
+      <p class="mb-0">{{ garage.name }}</p>
+    </div>
+    {% if not active_sub %}
+    <a href="{% url 'subscription:choose_plan' %}" class="btn btn-primary">
+      <i class="fas fa-plus"></i> Souscrire un abonnement
+    </a>
+    {% endif %}
+  </div>
+
+  <!-- Statut du garage -->
+  {% if not garage.is_active %}
+  <div class="alert alert-warning d-flex align-items-center mb-4">
+    <i class="fas fa-eye-slash fa-2x me-3"></i>
+    <div>
+      <strong>Votre garage est invisible</strong><br>
+      <small>Il n'apparaît pas dans les recherches. Souscrivez un abonnement pour le rendre visible.</small>
+    </div>
+  </div>
+  {% else %}
+  <div class="alert alert-success d-flex align-items-center mb-4">
+    <i class="fas fa-check-circle fa-2x me-3"></i>
+    <div>
+      <strong>Votre garage est visible</strong><br>
+      <small>Il apparaît dans les recherches et peut recevoir des demandes clients.</small>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Abonnement actif -->
+  {% if active_sub %}
+  <div class="card shadow-sm mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0"><i class="fas fa-star text-warning"></i> Abonnement en cours</h5>
+      <span class="status-active">Actif</span>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <div class="text-muted small">Formule</div>
+          <div class="fw-bold fs-5">{{ active_sub.plan.name }}</div>
+        </div>
+        <div class="col-md-4 mb-3">
+          <div class="text-muted small">Début</div>
+          <div class="fw-bold">{{ active_sub.start_date|date:"d/m/Y" }}</div>
+        </div>
+        <div class="col-md-4 mb-3">
+          <div class="text-muted small">Expiration</div>
+          <div class="fw-bold {% if active_sub.days_remaining <= 7 %}text-danger{% endif %}">
+            {{ active_sub.end_date|date:"d/m/Y" }}
+            {% if active_sub.days_remaining <= 7 %}
+            <span class="badge bg-danger ms-1">{{ active_sub.days_remaining }}j restants</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <!-- Barre de progression -->
+      {% with total=active_sub.plan.duration_days remaining=active_sub.days_remaining %}
+      {% if total > 0 %}
+      {% widthratio remaining total 100 as pct %}
+      <div class="mt-2">
+        <div class="d-flex justify-content-between small text-muted mb-1">
+          <span>{{ remaining }} jours restants</span>
+          <span>{{ total }} jours au total</span>
+        </div>
+        <div class="progress progress-sub">
+          <div class="progress-bar {% if remaining <= 7 %}bg-danger{% elif remaining <= 30 %}bg-warning{% else %}bg-success{% endif %}"
+               style="width: {{ pct }}%"></div>
+        </div>
+      </div>
+      {% endif %}
+      {% endwith %}
+
+      <!-- Renouveler -->
+      {% if active_sub.days_remaining <= 30 %}
+      <div class="mt-3">
+        <a href="{% url 'subscription:choose_plan' %}" class="btn btn-outline-primary btn-sm">
+          <i class="fas fa-refresh"></i> Renouveler maintenant
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Paiements en attente -->
+  {% for sub in subscriptions %}
+    {% for payment in sub.payments.all %}
+      {% if payment.status == 'en_attente' %}
+      <div class="info-card mb-4">
+        <h6 class="mb-2"><i class="fas fa-clock text-warning"></i> Paiement en attente de validation</h6>
+        <div class="row small">
+          <div class="col-sm-3"><span class="text-muted">Référence</span><br><strong>{{ payment.reference }}</strong></div>
+          <div class="col-sm-3"><span class="text-muted">Montant</span><br><strong>{{ payment.amount|floatformat:0 }} FCFA</strong></div>
+          <div class="col-sm-3"><span class="text-muted">Opérateur</span><br>{{ payment.get_method_display }}</div>
+          <div class="col-sm-3"><span class="text-muted">Soumis le</span><br>{{ payment.created_at|date:"d/m/Y H:i" }}</div>
+        </div>
+      </div>
+      {% endif %}
+    {% endfor %}
+  {% endfor %}
+
+  <!-- Historique des abonnements -->
+  <div class="card shadow-sm">
+    <div class="card-header">
+      <h5 class="mb-0"><i class="fas fa-history"></i> Historique</h5>
+    </div>
+    <div class="card-body p-0">
+      {% if subscriptions %}
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Formule</th>
+              <th>Statut</th>
+              <th>Début</th>
+              <th>Fin</th>
+              <th>Paiement</th>
+              <th>Montant</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sub in subscriptions %}
+            <tr>
+              <td><strong>{{ sub.plan.name }}</strong></td>
+              <td>
+                <span class="status-{{ sub.status }}">{{ sub.get_status_display }}</span>
+              </td>
+              <td>{{ sub.start_date|date:"d/m/Y"|default:"—" }}</td>
+              <td>{{ sub.end_date|date:"d/m/Y"|default:"—" }}</td>
+              <td>
+                {% for p in sub.payments.all %}
+                <small class="badge {% if p.status == 'valide' %}bg-success{% elif p.status == 'en_attente' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                  {{ p.get_status_display }}
+                </small>
+                {% empty %}—
+                {% endfor %}
+              </td>
+              <td>
+                {% for p in sub.payments.all %}
+                {{ p.amount|floatformat:0 }} FCFA
+                {% endfor %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-5 text-muted">
+        <i class="fas fa-receipt fa-3x mb-3"></i>
+        <p>Aucun abonnement pour le moment.</p>
+        <a href="{% url 'subscription:choose_plan' %}" class="btn btn-primary">
+          Souscrire maintenant
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% block title %}Choisir une formule – AutoRepair{% endblock %}
+
+{% block extra_css %}
+<style>
+.plan-card { border: 2px solid #dee2e6; border-radius: 12px; padding: 2rem;
+             text-align: center; transition: all .2s; height: 100%; }
+.plan-card:hover { border-color: #1F3864; transform: translateY(-4px);
+                   box-shadow: 0 8px 24px rgba(31,56,100,.15); }
+.plan-card.featured { border-color: #1F3864; background: #EFF4FB; }
+.plan-price { font-size: 2.2rem; font-weight: 800; color: #1F3864; }
+.plan-period { font-size: .9rem; color: #666; }
+.badge-featured { background:#C9A84C; color:#fff; font-size:.75rem;
+                  padding:3px 10px; border-radius:20px; }
+.alert-active { background:#EFF9EF; border-left:4px solid #1E7145;
+                border-radius:8px; padding:1rem 1.5rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+  <div class="page-header">
+    <h1><i class="fas fa-crown"></i> Abonnement Garage</h1>
+    <p class="mb-0">Choisissez la formule adaptée à votre activité pour apparaître sur la plateforme.</p>
+  </div>
+
+  {% if active_sub %}
+  <div class="alert-active mb-4">
+    <h5 class="mb-1"><i class="fas fa-check-circle text-success"></i> Abonnement actif</h5>
+    <p class="mb-1">
+      Formule <strong>{{ active_sub.plan.name }}</strong> —
+      expire le <strong>{{ active_sub.end_date|date:"d/m/Y" }}</strong>
+      ({{ active_sub.days_remaining }} jour{{ active_sub.days_remaining|pluralize }} restant{{ active_sub.days_remaining|pluralize }})
+    </p>
+    <a href="{% url 'subscription:dashboard' %}" class="btn btn-sm btn-outline-success mt-2">
+      <i class="fas fa-eye"></i> Voir mon abonnement
+    </a>
+  </div>
+  {% endif %}
+
+  <!-- Bandeau explicatif -->
+  <div class="card mb-4" style="background:#FFF8E7;border-left:4px solid #C9A84C;">
+    <div class="card-body py-3">
+      <h6 class="mb-2"><i class="fas fa-info-circle text-warning"></i> Comment ça fonctionne ?</h6>
+      <div class="row text-center">
+        <div class="col-md-3">
+          <div class="fw-bold text-primary">1</div>
+          <small>Choisissez une formule</small>
+        </div>
+        <div class="col-md-3">
+          <div class="fw-bold text-primary">2</div>
+          <small>Effectuez le paiement Mobile Money</small>
+        </div>
+        <div class="col-md-3">
+          <div class="fw-bold text-primary">3</div>
+          <small>L'admin valide votre paiement</small>
+        </div>
+        <div class="col-md-3">
+          <div class="fw-bold text-primary">4</div>
+          <small>Votre garage devient visible</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cartes formules -->
+  <div class="row justify-content-center g-4">
+    {% for plan in plans %}
+    <div class="col-md-4">
+      <div class="plan-card {% if plan.period == 'trimestriel' %}featured{% endif %}">
+        {% if plan.period == 'trimestriel' %}
+        <span class="badge-featured mb-2 d-inline-block">⭐ Recommandé</span>
+        {% endif %}
+        <h4 class="mb-1">{{ plan.name }}</h4>
+        <div class="plan-price">{{ plan.price|floatformat:0 }} <small style="font-size:1rem">FCFA</small></div>
+        <div class="plan-period mb-3">{{ plan.duration_days }} jours</div>
+        {% if plan.description %}
+        <p class="text-muted small mb-4">{{ plan.description }}</p>
+        {% endif %}
+        <ul class="list-unstyled text-start small mb-4">
+          <li><i class="fas fa-check text-success me-2"></i>Visible dans les recherches</li>
+          <li><i class="fas fa-check text-success me-2"></i>Réception des demandes clients</li>
+          <li><i class="fas fa-check text-success me-2"></i>Messagerie intégrée</li>
+          <li><i class="fas fa-check text-success me-2"></i>Gestion des rendez-vous</li>
+        </ul>
+        {% if not active_sub %}
+        <a href="{% url 'subscription:initiate_payment' plan.pk %}"
+           class="btn btn-primary w-100">
+          <i class="fas fa-mobile-alt"></i> Souscrire
+        </a>
+        {% else %}
+        <button class="btn btn-outline-secondary w-100" disabled>Déjà abonné</button>
+        {% endif %}
+      </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center text-muted py-5">
+      <i class="fas fa-exclamation-circle fa-3x mb-3"></i>
+      <p>Aucune formule disponible pour le moment. Contactez l'administrateur.</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

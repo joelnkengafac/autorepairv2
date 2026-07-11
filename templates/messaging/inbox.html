@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}Messagerie – AutoRepair{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="page-header">
+        <h1><i class="fas fa-envelope"></i> Messagerie</h1>
+        <p class="mb-0">Vos conversations avec les garages et clients</p>
+    </div>
+
+    {% if conversations %}
+    <div class="list-group shadow-sm">
+        {% for conv in conversations %}
+        <a href="{% url 'messaging:conversation' conv.user.pk %}"
+           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3
+                  {% if conv.unread > 0 %}fw-bold{% endif %}">
+            <div>
+                <i class="fas fa-user-circle fa-lg text-primary me-2"></i>
+                {{ conv.user.username }}
+                {% if conv.user.role == 'garage' %}
+                    <span class="badge bg-secondary ms-1">Garage</span>
+                {% else %}
+                    <span class="badge bg-info text-dark ms-1">Client</span>
+                {% endif %}
+                <br>
+                <small class="text-muted fw-normal">
+                    {% if conv.last_message.sender == request.user %}
+                        <i class="fas fa-reply"></i> Vous :
+                    {% endif %}
+                    {{ conv.last_message.content|truncatechars:60 }}
+                </small>
+            </div>
+            <div class="text-end">
+                <small class="text-muted d-block">
+                    {{ conv.last_message.created_at|date:"d/m à H:i" }}
+                </small>
+                {% if conv.unread > 0 %}
+                <span class="badge bg-danger rounded-pill">{{ conv.unread }}</span>
+                {% endif %}
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5 text-muted">
+            <i class="fas fa-envelope-open fa-3x mb-3"></i>
+            <p>Aucune conversation pour l'instant.</p>
+            <a href="{% url 'garages:garage_list' %}" class="btn btn-outline-primary">
+                Trouver un garage pour démarrer
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

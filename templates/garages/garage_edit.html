@@ -1,0 +1,274 @@
+{% extends 'base.html' %}
+{% block title %}Modifier {{ garage.name }} – AutoRepair{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+  #mini-map      { height: 280px; border-radius: 10px; border: 2px solid #dee2e6; }
+  #geocode-status { font-size: .85rem; min-height: 1.4em; }
+  .geocode-ok    { color: #1E7145; }
+  .geocode-warn  { color: #C55A11; }
+  #coords-display { font-family: monospace; font-size: .85rem; color: #555; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+  <div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+      <h1><i class="fas fa-edit"></i> Modifier mon garage</h1>
+      <p class="mb-0 text-muted">{{ garage.name }}</p>
+    </div>
+    <a href="{% url 'garages:garage_detail' garage.pk %}" class="btn btn-outline-secondary">
+      <i class="fas fa-arrow-left"></i> Retour
+    </a>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="fas fa-tools"></i> Informations du garage</h5>
+        </div>
+        <div class="card-body">
+          <form method="post" enctype="multipart/form-data" id="garageEditForm">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+              {% for e in form.non_field_errors %}<p class="mb-0">{{ e }}</p>{% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- ── Identité ─────────────────────────────────────────── -->
+            <h6 class="fw-bold mb-3 border-bottom pb-2">🏢 Identité</h6>
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label">{{ form.name.label }}</label>
+                {{ form.name }}
+                {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors.0 }}</div>{% endif %}
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{{ form.phone_number.label }}</label>
+                {{ form.phone_number }}
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">{{ form.description.label }}</label>
+              {{ form.description }}
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label">{{ form.website.label }}</label>
+                {{ form.website }}
+              </div>
+            </div>
+
+            <!-- ── Médias ────────────────────────────────────────────── -->
+            <h6 class="fw-bold mb-3 border-bottom pb-2 mt-4">🖼️ Médias</h6>
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label">{{ form.logo.label }}</label>
+                {% if garage.logo %}
+                  <div class="mb-2">
+                    <img src="{{ garage.logo.url }}" alt="Logo actuel" height="60" class="border rounded">
+                    <small class="text-muted ms-2">Logo actuel</small>
+                  </div>
+                {% endif %}
+                {{ form.logo }}
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{{ form.banner.label }}</label>
+                {% if garage.banner %}
+                  <div class="mb-2">
+                    <img src="{{ garage.banner.url }}" alt="Bannière actuelle" height="60" class="border rounded">
+                    <small class="text-muted ms-2">Bannière actuelle</small>
+                  </div>
+                {% endif %}
+                {{ form.banner }}
+              </div>
+            </div>
+
+            <!-- ── Localisation ──────────────────────────────────────── -->
+            <h6 class="fw-bold mb-3 border-bottom pb-2 mt-4">📍 Localisation</h6>
+            <div class="mb-3">
+              <label class="form-label">{{ form.address.label }}</label>
+              {{ form.address }}
+              {% if form.address.errors %}<div class="text-danger small">{{ form.address.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-4">
+                <label class="form-label">{{ form.city.label }}</label>
+                {{ form.city }}
+                {% if form.city.errors %}<div class="text-danger small">{{ form.city.errors.0 }}</div>{% endif %}
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">{{ form.zip_code.label }}</label>
+                {{ form.zip_code }}
+              </div>
+            </div>
+
+            <!-- Bouton Nominatim -->
+            <div class="mb-3">
+              <button type="button" id="btnGeocode" class="btn btn-outline-primary">
+                <i class="fas fa-map-marker-alt"></i> Recalculer la position GPS
+              </button>
+              <div id="geocode-status" class="mt-1"></div>
+              <div id="coords-display" class="mt-1"></div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label">{{ form.latitude.label }}</label>
+                {{ form.latitude }}
+                {% if form.latitude.errors %}<div class="text-danger small">{{ form.latitude.errors.0 }}</div>{% endif %}
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{{ form.longitude.label }}</label>
+                {{ form.longitude }}
+                {% if form.longitude.errors %}<div class="text-danger small">{{ form.longitude.errors.0 }}</div>{% endif %}
+              </div>
+            </div>
+
+            <!-- Mini-carte 3 couches -->
+            <div class="mb-4">
+              <label class="form-label">🗺️ Position actuelle (déplacez le marqueur pour affiner)</label>
+              <div id="mini-map"></div>
+              <small class="text-muted">
+                Utilisez le sélecteur en haut à droite pour basculer entre
+                <b>Plan</b>, <b>Topographie</b> et <b>Satellite</b>.
+              </small>
+            </div>
+
+            <!-- ── Horaires & Statut ──────────────────────────────────── -->
+            <h6 class="fw-bold mb-3 border-bottom pb-2 mt-4">🕒 Horaires & Statut</h6>
+            <div class="mb-3">
+              <label class="form-label">{{ form.opening_hours.label }}</label>
+              {{ form.opening_hours }}
+            </div>
+            <div class="form-check mb-3">
+              {{ form.is_open }}
+              <label class="form-check-label ms-2">{{ form.is_open.label }}</label>
+            </div>
+
+            <div class="d-flex gap-3 justify-content-end mt-4 pt-3 border-top">
+              <a href="{% url 'garages:garage_detail' garage.pk %}" class="btn btn-outline-secondary">
+                <i class="fas fa-times"></i> Annuler
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Enregistrer les modifications
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% include 'includes/map_layers.html' %}
+<script>
+const latInput   = document.getElementById('{{ form.latitude.id_for_label }}');
+const lonInput   = document.getElementById('{{ form.longitude.id_for_label }}');
+const addressInp = document.getElementById('{{ form.address.id_for_label }}');
+const cityInp    = document.getElementById('{{ form.city.id_for_label }}');
+const btnGeocode = document.getElementById('btnGeocode');
+const statusEl   = document.getElementById('geocode-status');
+const coordsEl   = document.getElementById('coords-display');
+
+// Coordonnées actuelles du garage (pré-remplies)
+const initLat = parseFloat(latInput.value) || 3.8607;
+const initLon = parseFloat(lonInput.value) || 11.5205;
+
+// Carte avec sélecteur 3 couches
+const map = L.map('mini-map').setView([initLat, initLon], 15);
+planLayer.addTo(map);
+L.control.layers(baseLayers, null, { position: 'topright', collapsed: false }).addTo(map);
+
+// Marqueur draggable positionné sur la position actuelle
+const marker = L.marker([initLat, initLon], { draggable: true }).addTo(map);
+showCoords(initLat, initLon);
+
+// Déplacer le marqueur → mettre à jour lat/lon + reverse Nominatim
+marker.on('dragend', function () {
+  const pos = marker.getLatLng();
+  setCoords(pos.lat, pos.lng);
+  reverseGeocode(pos.lat, pos.lng);
+});
+
+// Changer lat/lon manuellement → déplacer la carte
+latInput.addEventListener('change', syncMap);
+lonInput.addEventListener('change', syncMap);
+function syncMap() {
+  const lat = parseFloat(latInput.value);
+  const lon = parseFloat(lonInput.value);
+  if (!isNaN(lat) && !isNaN(lon)) {
+    marker.setLatLng([lat, lon]);
+    map.setView([lat, lon], 15);
+    showCoords(lat, lon);
+  }
+}
+
+function setCoords(lat, lon) {
+  latInput.value = lat.toFixed(6);
+  lonInput.value = lon.toFixed(6);
+  showCoords(lat, lon);
+}
+function showCoords(lat, lon) {
+  coordsEl.textContent = `Coordonnées : ${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+}
+function setStatus(msg, type) {
+  statusEl.textContent = msg;
+  statusEl.className = 'mt-1 geocode-' + (type || '');
+}
+
+// Géocodage direct : adresse → GPS (Nominatim)
+btnGeocode.addEventListener('click', function () {
+  const address = addressInp.value.trim();
+  const city    = cityInp.value.trim();
+  if (!address && !city) { setStatus('Renseignez l\'adresse ou la ville.', 'warn'); return; }
+  const query = [address, city, 'Cameroun'].filter(Boolean).join(', ');
+  setStatus('Recherche en cours…', '');
+  btnGeocode.disabled = true;
+  fetch('https://nominatim.openstreetmap.org/search?' + new URLSearchParams({ q: query, format: 'json', limit: 1 }),
+    { headers: { 'Accept-Language': 'fr', 'User-Agent': 'AutoRepair/1.0' } })
+  .then(r => r.json())
+  .then(data => {
+    if (data && data.length > 0) {
+      const lat = parseFloat(data[0].lat), lon = parseFloat(data[0].lon);
+      setCoords(lat, lon);
+      marker.setLatLng([lat, lon]);
+      map.setView([lat, lon], 16);
+      setStatus('✅ Position mise à jour : ' + data[0].display_name, 'ok');
+    } else {
+      setStatus('⚠️ Adresse introuvable. Déplacez le marqueur manuellement.', 'warn');
+    }
+  })
+  .catch(() => setStatus('⚠️ Erreur réseau.', 'warn'))
+  .finally(() => { btnGeocode.disabled = false; });
+});
+
+// Géocodage inverse : GPS → adresse (quand on déplace le marqueur)
+function reverseGeocode(lat, lon) {
+  fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`,
+    { headers: { 'Accept-Language': 'fr', 'User-Agent': 'AutoRepair/1.0' } })
+  .then(r => r.json())
+  .then(data => {
+    if (data && data.address) {
+      const a = data.address;
+      if (!addressInp.value.trim()) {
+        addressInp.value = [a.house_number, a.road || a.pedestrian || a.neighbourhood].filter(Boolean).join(' ');
+      }
+      if (!cityInp.value.trim()) {
+        cityInp.value = a.city || a.town || a.village || a.county || '';
+      }
+      setStatus('📍 ' + data.display_name, 'ok');
+    }
+  })
+  .catch(() => {});
+}
+</script>
+{% endblock %}

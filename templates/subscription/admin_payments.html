@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% block title %}Paiements – Admin AutoRepair{% endblock %}
+
+{% block extra_css %}
+<style>
+.badge-pending  { background:#FFF3CD; color:#856404; padding:4px 10px; border-radius:6px; font-weight:600; }
+.badge-valide   { background:#D6EFE2; color:#1E7145; padding:4px 10px; border-radius:6px; font-weight:600; }
+.badge-echoue   { background:#F8D7DA; color:#721c24; padding:4px 10px; border-radius:6px; font-weight:600; }
+.section-title  { font-size:1.1rem; font-weight:700; color:#1F3864;
+                  border-bottom:2px solid #1F3864; padding-bottom:6px; margin-bottom:1rem; }
+.pending-row    { background:#FFFDF0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex" style="min-height:calc(100vh - 56px);">
+  {% include 'admin_custom/sidebar.html' with active='payments' %}
+  <div style="padding:2rem;flex-grow:1;">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h4 class="fw-bold mb-1"><i class="fas fa-cash-register"></i> Gestion des paiements</h4>
+      <p class="text-muted mb-0">Validez ou rejetez les demandes de paiement Mobile Money</p>
+    </div>
+    <a href="{% url 'subscription:admin_subscriptions' %}" class="btn btn-outline-primary">
+      <i class="fas fa-list"></i> Tous les abonnements
+    </a>
+  </div>
+
+  <!-- Compteurs -->
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <div class="card text-center border-warning">
+        <div class="card-body py-3">
+          <div class="fs-2 fw-bold text-warning">{{ pending|length }}</div>
+          <div class="text-muted small">En attente</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card text-center border-success">
+        <div class="card-body py-3">
+          <div class="fs-2 fw-bold text-success">
+            {{ history|length }}
+          </div>
+          <div class="text-muted small">Traités (50 derniers)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Paiements en attente -->
+  <div class="section-title">
+    <i class="fas fa-clock text-warning"></i> Paiements en attente
+    <span class="badge bg-warning text-dark ms-2">{{ pending|length }}</span>
+  </div>
+
+  {% if pending %}
+  <div class="table-responsive mb-5">
+    <table class="table table-hover align-middle">
+      <thead class="table-dark">
+        <tr>
+          <th>Référence</th>
+          <th>Garage</th>
+          <th>Formule</th>
+          <th>Montant</th>
+          <th>Opérateur</th>
+          <th>Numéro</th>
+          <th>Date</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in pending %}
+        <tr class="pending-row">
+          <td><code class="text-primary">{{ p.reference }}</code></td>
+          <td>
+            <strong>{{ p.subscription.garage.name }}</strong><br>
+            <small class="text-muted">{{ p.subscription.garage.city }}</small>
+          </td>
+          <td>{{ p.subscription.plan.name }}</td>
+          <td class="fw-bold">{{ p.amount|floatformat:0 }} FCFA</td>
+          <td>
+            {% if p.method == 'orange_money' %}
+            <span class="badge" style="background:#FF6600;">🟠 Orange Money</span>
+            {% else %}
+            <span class="badge" style="background:#FFCC00;color:#000;">🟡 MTN MoMo</span>
+            {% endif %}
+          </td>
+          <td>{{ p.phone_number }}</td>
+          <td><small>{{ p.created_at|date:"d/m/Y H:i" }}</small></td>
+          <td>
+            <a href="{% url 'subscription:admin_confirm_payment' p.pk %}"
+               class="btn btn-primary btn-sm">
+              <i class="fas fa-check-circle"></i> Traiter
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center py-4 text-muted mb-5">
+    <i class="fas fa-check-double fa-3x mb-3 text-success"></i>
+    <p>Aucun paiement en attente. Tout est traité !</p>
+  </div>
+  {% endif %}
+
+  <!-- Historique -->
+  <div class="section-title">
+    <i class="fas fa-history"></i> Historique des paiements
+  </div>
+
+  {% if history %}
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-secondary">
+        <tr>
+          <th>Référence</th>
+          <th>Garage</th>
+          <th>Formule</th>
+          <th>Montant</th>
+          <th>Opérateur</th>
+          <th>Statut</th>
+          <th>Validé par</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in history %}
+        <tr>
+          <td><code>{{ p.reference }}</code></td>
+          <td>{{ p.subscription.garage.name }}</td>
+          <td>{{ p.subscription.plan.name }}</td>
+          <td>{{ p.amount|floatformat:0 }} FCFA</td>
+          <td>{{ p.get_method_display }}</td>
+          <td>
+            {% if p.status == 'valide' %}
+            <span class="badge-valide">✓ Validé</span>
+            {% elif p.status == 'echoue' %}
+            <span class="badge-echoue">✗ Rejeté</span>
+            {% else %}
+            <span class="badge bg-secondary">{{ p.get_status_display }}</span>
+            {% endif %}
+          </td>
+          <td>{{ p.confirmed_by.username|default:"—" }}</td>
+          <td><small>{{ p.created_at|date:"d/m/Y" }}</small></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center py-4 text-muted">
+    <p>Aucun historique disponible.</p>
+  </div>
+  {% endif %}
+  </div>
+</div>
+{% endblock %}

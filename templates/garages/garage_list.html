@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+{% block title %}Rechercher un garage – AutoRepair{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+  #map { height: 560px; width: 100%; border-radius: 10px; }
+  .garage-sidebar { background: var(--card-bg); border-radius: 12px;
+                    border: 1px solid var(--border); overflow: hidden; }
+  .sidebar-header { padding: 1rem 1.2rem; border-bottom: 1px solid var(--border);
+                    display: flex; justify-content: space-between; align-items: center; }
+  .garage-list-scroll  { max-height: 490px; overflow-y: auto; }
+  .garage-card-item    { display: block; padding: .8rem 1.2rem;
+                         border-bottom: 1px solid var(--border);
+                         color: inherit; text-decoration: none; transition: background .15s; }
+  .garage-card-item:hover { background: var(--accent-light, #eef3fa); }
+  .garage-name    { font-weight: 600; display: flex;
+                    justify-content: space-between; align-items: center; }
+  .distance-badge { font-size: .75rem; background: #1F3864;
+                    color: #fff; padding: 2px 8px; border-radius: 20px; }
+  .garage-meta    { font-size: .82rem; color: #666; margin-top: 2px; }
+  #geocode-feedback { font-size: .85rem; min-height: 1.2em; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+  <div class="page-header mb-4">
+    <h1><i class="fas fa-search-location"></i> Trouvez votre garage</h1>
+    <p class="mb-0">Découvrez les meilleurs garages près de chez vous</p>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-body py-3">
+      <form method="get" id="searchForm" class="row g-2 align-items-end">
+        <div class="col-md-5">
+          <label class="form-label small fw-semibold"><i class="fas fa-city"></i> Ville</label>
+          <input type="text" name="city" class="form-control"
+                 placeholder="Ex : Yaoundé, Douala, Bafoussam…"
+                 value="{{ city_query }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold"><i class="fas fa-crosshairs"></i> Ma position exacte</label>
+          <button type="button" id="btnGeolocate" class="btn btn-outline-primary w-100">
+            <i class="fas fa-map-marker-alt"></i> Utiliser ma position GPS
+          </button>
+          <input type="hidden" name="lat" id="inputLat" value="{{ user_lat }}">
+          <input type="hidden" name="lon" id="inputLon" value="{{ user_lon }}">
+        </div>
+        <div class="col-md-3">
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="fas fa-search"></i> Rechercher
+          </button>
+        </div>
+      </form>
+      <div id="geocode-feedback" class="mt-2 text-muted">
+        {% if geocode_error %}
+          <span class="text-warning"><i class="fas fa-exclamation-triangle"></i> {{ geocode_error }}</span>
+        {% elif city_query %}
+          <span class="text-success"><i class="fas fa-check-circle"></i> Résultats pour « {{ city_query }} »</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-4 col-md-12 mb-4">
+      <div class="garage-sidebar">
+        <div class="sidebar-header">
+          <h5 class="mb-0"><i class="fas fa-list"></i> Garages</h5>
+          <span class="badge bg-primary">{{ garages|length }}</span>
+        </div>
+        <div class="garage-list-scroll">
+          {% if garages %}
+            {% for item in garages %}
+            <a href="{% url 'garages:garage_detail' item.garage.pk %}?lat={{ user_lat }}&lon={{ user_lon }}"
+               class="garage-card-item"
+               data-lat="{{ item.garage.latitude }}"
+               data-lon="{{ item.garage.longitude }}"
+               data-idx="{{ forloop.counter0 }}">
+              <div class="garage-name">
+                {{ item.garage.name }}
+                <span class="distance-badge">{{ item.distance }} km</span>
+              </div>
+              <div class="garage-meta">
+                <i class="fas fa-map-marker-alt"></i> {{ item.garage.city }}
+              </div>
+            </a>
+            {% endfor %}
+          {% else %}
+            <div class="text-center py-5 text-muted">
+              <i class="fas fa-search fa-3x mb-3"></i>
+              <p>Aucun garage trouvé</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-8 col-md-12">
+      <div id="map"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% include 'includes/map_layers.html' %}
+<script>
+const userLat = parseFloat('{{ user_lat }}') || 3.8607;
+const userLon = parseFloat('{{ user_lon }}') || 11.5205;
+const garages = {{ garages_json|safe }};
+
+// Carte avec couche Plan par défaut
+const map = L.map('map').setView([userLat, userLon], 12);
+planLayer.addTo(map);
+L.control.layers(baseLayers, null, { position: 'topright', collapsed: false }).addTo(map);
+
+// Marqueur utilisateur
+const userIcon = L.divIcon({
+  className: '',
+  html: '<div style="width:18px;height:18px;border-radius:50%;background:#1F3864;border:3px solid #ffd700;box-shadow:0 2px 6px rgba(0,0,0,.4);"></div>',
+  iconSize: [18,18], iconAnchor: [9,9],
+});
+L.marker([userLat, userLon], {icon: userIcon}).addTo(map).bindPopup('<b>📍 Votre position</b>');
+
+// Marqueurs garages
+const garageIcon = L.divIcon({
+  className: '',
+  html: '<div style="width:14px;height:14px;border-radius:50%;background:#2E75B6;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);"></div>',
+  iconSize: [14,14], iconAnchor: [7,7],
+});
+const markers = [];
+garages.forEach(g => {
+  const m = L.marker([g.latitude, g.longitude], {icon: garageIcon}).addTo(map)
+    .bindPopup(`
+      <div style="min-width:160px;text-align:center;">
+        <b style="color:#1F3864;">${g.name}</b><br>
+        <small>${g.city}</small><br>
+        <span style="color:#2E75B6;">${g.distance} km</span><br>
+        <a href="/garages/${g.id}/?lat=${userLat}&lon=${userLon}"
+           style="display:inline-block;margin-top:6px;padding:3px 10px;
+                  background:#1F3864;color:#fff;border-radius:6px;font-size:.8rem;text-decoration:none;">
+          Voir le garage
+        </a>
+      </div>
+    `);
+  markers.push(m);
+});
+
+if (markers.length > 0) {
+  const group = L.featureGroup([...markers, L.marker([userLat, userLon])]);
+  map.fitBounds(group.getBounds().pad(0.15));
+}
+
+// Clic liste → centrer carte
+document.querySelectorAll('.garage-card-item').forEach(el => {
+  el.addEventListener('click', function(e) {
+    e.preventDefault();
+    const lat = parseFloat(this.dataset.lat);
+    const lon = parseFloat(this.dataset.lon);
+    const idx = parseInt(this.dataset.idx);
+    map.setView([lat, lon], 16);
+    if (markers[idx]) markers[idx].openPopup();
+  });
+});
+
+// GPS navigateur → Nominatim reverse → soumettre
+const btnGeolocate = document.getElementById('btnGeolocate');
+const inputLat = document.getElementById('inputLat');
+const inputLon = document.getElementById('inputLon');
+const feedback = document.getElementById('geocode-feedback');
+const cityInput = document.querySelector('input[name="city"]');
+
+btnGeolocate.addEventListener('click', function() {
+  if (!navigator.geolocation) {
+    feedback.innerHTML = '<span class="text-danger">Géolocalisation non supportée.</span>';
+    return;
+  }
+  btnGeolocate.disabled = true;
+  btnGeolocate.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Localisation…';
+  feedback.innerHTML = '<span class="text-muted">Récupération de votre position GPS…</span>';
+
+  navigator.geolocation.getCurrentPosition(
+    function(pos) {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      inputLat.value = lat.toFixed(6);
+      inputLon.value = lon.toFixed(6);
+      fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`,
+        { headers: { 'Accept-Language': 'fr', 'User-Agent': 'AutoRepair/1.0' } })
+        .then(r => r.json())
+        .then(data => {
+          if (data && data.address) {
+            const a = data.address;
+            const city = a.city || a.town || a.village || a.county || '';
+            if (city) cityInput.value = city;
+            feedback.innerHTML = `<span class="text-success"><i class="fas fa-check-circle"></i> Position : ${city || data.display_name}</span>`;
+          }
+          document.getElementById('searchForm').submit();
+        })
+        .catch(() => { document.getElementById('searchForm').submit(); });
+    },
+    function() {
+      feedback.innerHTML = '<span class="text-danger"><i class="fas fa-times-circle"></i> Accès refusé.</span>';
+      btnGeolocate.disabled = false;
+      btnGeolocate.innerHTML = '<i class="fas fa-map-marker-alt"></i> Utiliser ma position GPS';
+    },
+    { timeout: 8000, maximumAge: 60000 }
+  );
+});
+</script>
+{% endblock %}

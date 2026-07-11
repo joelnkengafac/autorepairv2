@@ -1,0 +1,43 @@
+<script>
+/* ================================================================
+   3 COUCHES DE TUILES — Nominatim / OpenStreetMap
+   ================================================================ */
+
+// 1. MODE PLAN (OpenStreetMap standard)
+const planLayer = L.tileLayer(
+  'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19,
+  }
+);
+
+// 2. MODE TOPOGRAPHIQUE (OpenTopoMap)
+const topoLayer = L.tileLayer(
+  'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+  {
+    attribution:
+      '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, ' +
+      '© <a href="https://opentopomap.org">OpenTopoMap</a>',
+    maxZoom: 17,
+  }
+);
+
+// 3. MODE SATELLITE (Esri World Imagery — libre d'accès)
+const satelliteLayer = L.tileLayer(
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  {
+    attribution:
+      'Tiles &copy; Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, ' +
+      'Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+    maxZoom: 19,
+  }
+);
+
+// Objet passé à L.control.layers() pour le sélecteur de fond de carte
+const baseLayers = {
+  '🗺️ Plan':       planLayer,
+  '🏔️ Topographie': topoLayer,
+  '🛰️ Satellite':   satelliteLayer,
+};
+</script>

@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Demande #{{ repair.pk }}{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <a href="{% url 'repairs:client_requests' %}" class="btn btn-sm btn-outline-secondary mb-3">
+        <i class="fas fa-arrow-left"></i> Retour
+    </a>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-tools"></i> Demande #{{ repair.pk }}</h5>
+            <span class="badge bg-{{ repair.get_status_badge }} fs-6">
+                {{ repair.get_status_display }}
+            </span>
+        </div>
+        <div class="card-body">
+            <dl class="row">
+                <dt class="col-sm-3">Garage</dt>
+                <dd class="col-sm-9">{{ repair.garage.name }} — {{ repair.garage.city }}</dd>
+
+                <dt class="col-sm-3">Véhicule</dt>
+                <dd class="col-sm-9">{{ repair.vehicle_description }}</dd>
+
+                <dt class="col-sm-3">Type de service</dt>
+                <dd class="col-sm-9">{{ repair.get_type_service_display }}</dd>
+
+                <dt class="col-sm-3">Description</dt>
+                <dd class="col-sm-9">{{ repair.description }}</dd>
+
+                <dt class="col-sm-3">Envoyée le</dt>
+                <dd class="col-sm-9">{{ repair.created_at|date:"d/m/Y à H:i" }}</dd>
+
+                {% if repair.garage_note %}
+                <dt class="col-sm-3">Note du garage</dt>
+                <dd class="col-sm-9">
+                    <div class="alert alert-info mb-0">{{ repair.garage_note }}</div>
+                </dd>
+                {% endif %}
+            </dl>
+        </div>
+    </div>
+
+    {% if repair.appointment %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-success text-white">
+            <h6 class="mb-0"><i class="fas fa-calendar-check"></i> Rendez-vous confirmé</h6>
+        </div>
+        <div class="card-body">
+            <p class="mb-1">
+                <strong>Date :</strong>
+                {{ repair.appointment.scheduled_at|date:"l d/m/Y à H:i" }}
+            </p>
+            {% if repair.appointment.notes %}
+            <p class="mb-0"><strong>Notes :</strong> {{ repair.appointment.notes }}</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <a href="{% url 'messaging:conversation' repair.garage.user.pk %}" class="btn btn-outline-primary">
+        <i class="fas fa-envelope"></i> Contacter le garage
+    </a>
+</div>
+{% endblock %}

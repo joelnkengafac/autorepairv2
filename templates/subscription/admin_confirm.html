@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% block title %}Traiter le paiement {{ payment.reference }}{% endblock %}
+
+{% block content %}
+<div class="d-flex" style="min-height:calc(100vh - 56px);">
+  {% include 'admin_custom/sidebar.html' with active='payments' %}
+  <div style="padding:2rem;flex-grow:1;">
+  <a href="{% url 'subscription:admin_payments' %}" class="btn btn-sm btn-outline-secondary mb-3">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+
+  <div class="mb-4">
+    <h4 class="fw-bold mb-1"><i class="fas fa-check-circle"></i> Traitement du paiement</h4>
+    <p class="text-muted mb-0">Référence : <strong class="text-primary">{{ payment.reference }}</strong></p>
+  </div>
+
+  <div class="row">
+    <!-- Détails paiement -->
+    <div class="col-lg-6 mb-4">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+          <h6 class="mb-0"><i class="fas fa-receipt"></i> Détails du paiement</h6>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-sm-5">Garage</dt>
+            <dd class="col-sm-7"><strong>{{ payment.subscription.garage.name }}</strong></dd>
+
+            <dt class="col-sm-5">Propriétaire</dt>
+            <dd class="col-sm-7">{{ payment.subscription.garage.user.username }}</dd>
+
+            <dt class="col-sm-5">Formule</dt>
+            <dd class="col-sm-7">{{ payment.subscription.plan.name }}</dd>
+
+            <dt class="col-sm-5">Durée</dt>
+            <dd class="col-sm-7">{{ payment.subscription.plan.duration_days }} jours</dd>
+
+            <dt class="col-sm-5">Montant</dt>
+            <dd class="col-sm-7 fw-bold text-primary fs-5">{{ payment.amount|floatformat:0 }} FCFA</dd>
+
+            <dt class="col-sm-5">Opérateur</dt>
+            <dd class="col-sm-7">
+              {% if payment.method == 'orange_money' %}
+              🟠 {{ payment.get_method_display }}
+              {% else %}
+              🟡 {{ payment.get_method_display }}
+              {% endif %}
+            </dd>
+
+            <dt class="col-sm-5">Numéro MoMo</dt>
+            <dd class="col-sm-7"><code>{{ payment.phone_number }}</code></dd>
+
+            <dt class="col-sm-5">Soumis le</dt>
+            <dd class="col-sm-7">{{ payment.created_at|date:"d/m/Y à H:i" }}</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <!-- Formulaire de confirmation -->
+    <div class="col-lg-6 mb-4">
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h6 class="mb-0"><i class="fas fa-pen"></i> Validation</h6>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">{{ form.operator_ref.label }}</label>
+              {{ form.operator_ref }}
+              <small class="text-muted">Référence de transaction reçue de l'opérateur (optionnel)</small>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label fw-semibold">{{ form.notes.label }}</label>
+              {{ form.notes }}
+            </div>
+
+            <!-- Boutons d'action -->
+            <div class="d-flex gap-3">
+              <button type="submit" name="action" value="validate"
+                      class="btn btn-success flex-fill"
+                      onclick="return confirm('Valider ce paiement et activer le garage ?')">
+                <i class="fas fa-check-circle"></i> Valider le paiement
+              </button>
+              <button type="submit" name="action" value="reject"
+                      class="btn btn-danger flex-fill"
+                      onclick="return confirm('Rejeter ce paiement ?')">
+                <i class="fas fa-times-circle"></i> Rejeter
+              </button>
+            </div>
+
+            <div class="mt-3 small text-muted">
+              <i class="fas fa-info-circle"></i>
+              <strong>Valider</strong> → l'abonnement est activé et le garage devient visible.<br>
+              <strong>Rejeter</strong> → l'abonnement est annulé et le garage reste invisible.
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,60 @@
+
+<style>
+.admin-sidebar { background:#1F3864; min-height:calc(100vh - 56px); padding:1.5rem 0; width:240px; flex-shrink:0; }
+.sidebar-link { display:flex; align-items:center; gap:.75rem; padding:.65rem 1.5rem;
+                color:rgba(255,255,255,.75); text-decoration:none; font-size:.92rem;
+                transition:all .15s; border-left:3px solid transparent; }
+.sidebar-link:hover,.sidebar-link.active { background:rgba(255,255,255,.1); color:#fff; border-left-color:#C9A84C; }
+.sidebar-link i { width:18px; text-align:center; }
+.sidebar-badge { margin-left:auto; }
+</style>
+
+<div class="admin-sidebar">
+  <div class="px-4 mb-4">
+    <div style="color:#C9A84C;font-weight:700;font-size:1rem;">
+      <i class="fas fa-shield-alt"></i> Administration
+    </div>
+    <div style="color:rgba(255,255,255,.5);font-size:.8rem;">{{ user.username }}</div>
+  </div>
+
+  <a href="{% url 'admin_custom:dashboard' %}" class="sidebar-link {% if active == 'dashboard' %}active{% endif %}">
+    <i class="fas fa-tachometer-alt"></i> Tableau de bord
+  </a>
+
+  <div style="color:rgba(255,255,255,.3);font-size:.72rem;padding:.5rem 1.5rem .2rem;text-transform:uppercase;letter-spacing:.08em;">
+    Monétisation
+  </div>
+  <a href="{% url 'subscription:admin_payments' %}" class="sidebar-link {% if active == 'payments' %}active{% endif %}">
+    <i class="fas fa-cash-register"></i> Paiements
+    {% if sub_pending_count > 0 %}
+    <span class="badge bg-danger sidebar-badge">{{ sub_pending_count }}</span>
+    {% endif %}
+  </a>
+  <a href="{% url 'subscription:admin_subscriptions' %}" class="sidebar-link {% if active == 'subscriptions' %}active{% endif %}">
+    <i class="fas fa-crown"></i> Abonnements
+  </a>
+  <a href="{% url 'admin_custom:stats' %}" class="sidebar-link {% if active == 'stats' %}active{% endif %}">
+    <i class="fas fa-chart-bar"></i> Statistiques
+  </a>
+
+  <div style="color:rgba(255,255,255,.3);font-size:.72rem;padding:.5rem 1.5rem .2rem;text-transform:uppercase;letter-spacing:.08em;">
+    Utilisateurs
+  </div>
+  <a href="{% url 'admin_custom:users' %}" class="sidebar-link {% if active == 'users' %}active{% endif %}">
+    <i class="fas fa-users"></i> Utilisateurs
+  </a>
+  <a href="{% url 'admin_custom:garages' %}" class="sidebar-link {% if active == 'garages' %}active{% endif %}">
+    <i class="fas fa-warehouse"></i> Garages
+  </a>
+  <a href="{% url 'admin_custom:reviews' %}" class="sidebar-link {% if active == 'reviews' %}active{% endif %}">
+    <i class="fas fa-star"></i> Avis
+  </a>
+
+  <div style="height:1px;background:rgba(255,255,255,.1);margin:1rem 1.5rem;"></div>
+  <a href="/admin/" class="sidebar-link">
+    <i class="fas fa-cog"></i> Django Admin
+  </a>
+  <a href="{% url 'core:home' %}" class="sidebar-link">
+    <i class="fas fa-home"></i> Voir le site
+  </a>
+</div>

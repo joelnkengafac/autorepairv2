@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+<!--  -->
+
+{% block title %}{{ garage.name }} - AutoRepair{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <!-- En-tête Garage -->
+    <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <h1 class="mb-1">{{ garage.name }}</h1>
+            <p class="mb-0 text-muted">
+                <i class="fas fa-map-marker-alt"></i> {{ garage.address }}, {{ garage.city }}
+            </p>
+        </div>
+        {% if user.is_authenticated and user == garage.user %}
+        <div>
+          <a href="{% url 'garages:garage_edit' garage.pk %}" class="btn btn-outline-primary">
+            <i class="fas fa-edit"></i> Modifier mon garage
+          </a>
+        </div>
+        {% endif %}
+        
+        <!-- Note moyenne (calculée dans la vue) -->
+        <div class="text-end">
+            <div class="rating-badge mb-1">
+                <span class="stars">
+                    {% for i in "12345" %}
+                        <span class="star {% if forloop.counter <= average_rating|floatformat:"0" %}filled{% endif %}">★</span>
+                    {% endfor %}
+                </span>
+                <span>{{ average_rating|floatformat:1 }}/5</span>
+            </div>
+            <small class="text-muted">{{ total_reviews }} avis</small>
+        </div>
+    </div>
+
+    <!-- Infos principales -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">À propos</h5>
+                    <p class="card-text">{{ garage.description|default:"Aucune description." }}</p>
+                    
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">📞 Téléphone</dt>
+                        <dd class="col-sm-8">{{ garage.phone_number|default:"Non renseigné" }}</dd>
+                        <dt class="col-sm-4">🌐 Site web</dt>
+                        <dd class="col-sm-8">
+                            {% if garage.website %}
+                                <a href="{{ garage.website }}" target="_blank">{{ garage.website }}</a>
+                            {% else %}<span class="text-muted">Aucun</span>{% endif %}
+                        </dd>
+                        <dt class="col-sm-4">🕒 Horaires</dt>
+                        <dd class="col-sm-8">{{ garage.opening_hours|default:"Non renseignés" }}</dd>
+                        <dt class="col-sm-4">📊 Statut</dt>
+                        <dd class="col-sm-8">
+                            {% if garage.is_open %}
+                                <span class="badge bg-success">Ouvert</span>
+                            {% else %}
+                                <span class="badge bg-danger">Fermé</span>
+                            {% endif %}
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+            
+            <!-- ✅ BOUTON AVIS - VERSION CORRIGÉE -->
+            {% if user.is_authenticated %}
+
+    {% if user.role == 'client' %}
+
+        {% if not user_has_reviewed %}
+            <a href="{% url 'reviews:create' garage.pk %}" class="btn btn-gold btn-lg mb-4">
+                <i class="fas fa-star"></i> Laisser un avis
+            </a>
+        {% else %}
+            <div class="alert alert-info mb-4">
+                <i class="fas fa-info-circle"></i>
+                Vous avez déjà laissé un avis pour ce garage.
+                {% if user_review %}
+                    <a href="{% url 'reviews:edit' user_review.pk %}" class="ms-2">Le modifier</a>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <a href="{% url 'repairs:request_create' garage.pk %}" class="btn btn-primary btn-lg mb-4 ms-2">
+            <i class="fas fa-tools"></i> Demander une réparation
+        </a>
+
+        <a href="{% url 'messaging:conversation' garage.user.pk %}" class="btn btn-outline-secondary btn-lg mb-4 ms-2">
+            <i class="fas fa-envelope"></i> Contacter
+        </a>
+
+    {% endif %}
+
+{% else %}
+
+    <div class="alert alert-info mb-4">
+        <i class="fas fa-user"></i>
+        <a href="{% url 'accounts:login' %}?next={{ request.path }}">
+            Connectez-vous
+        </a>
+        pour laisser un avis.
+    </div>
+
+{% endif %}
+            <!-- ✅ FIN BOUTON AVIS -->
+            
+        </div>
+        
+        <!-- Carte mini -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-map"></i> Localisation
+                </div>
+                <div class="card-body p-0">
+                    <div id="mini-map" style="height: 250px;"></div>
+                </div>
+                <div class="card-footer">
+                    <a href="https://www.google.com/maps?q={{ garage.latitude }},{{ garage.longitude }}" 
+                       target="_blank" class="btn btn-sm btn-outline-primary w-100">
+                        <i class="fas fa-external-link-alt"></i> Google Maps
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section Avis (simplifiée) -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-comments"></i> Avis clients ({{ reviews|length }})</h5>
+        </div>
+        <div class="card-body">
+            {% if reviews %}
+                {% for review in reviews %}
+                <div class="review-card mb-3 p-3 border rounded">
+                    <div class="d-flex justify-content-between">
+                        <strong>{{ review.user.username }}</strong>
+                        <div>
+                            {% for i in "12345" %}
+                                <span class="{% if forloop.counter <= review.rating %}text-warning{% else %}text-muted{% endif %}">★</span>
+                            {% endfor %}
+                            <small class="text-muted ms-2">{{ review.created_at|date:"d/m/Y" }}</small>
+                        </div>
+                    </div>
+                    {% if review.title %}<p class="fw-bold mt-2">"{{ review.title }}"</p>{% endif %}
+                    <p class="mb-2">{{ review.comment|linebreaksbr }}</p>
+                    
+                    {% if review.user == user %}
+                    <div class="mt-2">
+                        <a href="{% url 'reviews:edit' review.pk %}" class="btn btn-sm btn-outline-primary">Modifier</a>
+                        <form method="post" action="{% url 'reviews:delete' review.pk %}" class="d-inline" onsubmit="return confirm('Supprimer ?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Supprimer</button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-muted text-center py-4">Aucun avis pour le moment.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+  #mini-map { height: 280px; border-radius: 8px; }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% include 'includes/map_layers.html' %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const lat  = {{ garage.latitude }};
+  const lon  = {{ garage.longitude }};
+  const name = "{{ garage.name|escapejs }}";
+
+  // Carte avec Plan par défaut + sélecteur 3 couches
+  const map = L.map('mini-map').setView([lat, lon], 15);
+  planLayer.addTo(map);
+  L.control.layers(baseLayers, null, { position: 'topright', collapsed: true }).addTo(map);
+
+  // Marqueur du garage
+  const marker = L.marker([lat, lon]).addTo(map);
+
+  // Popup via Nominatim (géocodage inverse)
+  fetch(
+    `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`,
+    { headers: { 'Accept-Language': 'fr', 'User-Agent': 'AutoRepair/1.0' } }
+  )
+  .then(r => r.json())
+  .then(data => {
+    const adresse = data.display_name || '{{ garage.address|escapejs }}, {{ garage.city|escapejs }}';
+    marker.bindPopup(
+      `<div style="min-width:160px;text-align:center;">
+         <b style="color:#1F3864;">${name}</b><br>
+         <small style="color:#555;">${adresse}</small>
+       </div>`
+    ).openPopup();
+  })
+  .catch(() => {
+    marker.bindPopup(`<b>${name}</b><br>{{ garage.address|escapejs }}`).openPopup();
+  });
+});
+</script>
+{% endblock %}

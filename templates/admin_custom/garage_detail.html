@@ -1,0 +1,252 @@
+{% extends 'base.html' %}
+{% block title %}{{ garage.name }} – Admin AutoRepair{% endblock %}
+{% block content %}
+<div class="d-flex" style="min-height:calc(100vh - 56px);">
+  {% include 'admin_custom/sidebar.html' with active='garages' %}
+  <div style="padding:2rem;flex-grow:1;">
+    <a href="{% url 'admin_custom:garages' %}" class="btn btn-sm btn-outline-secondary mb-3">
+      <i class="fas fa-arrow-left"></i> Retour aux garages
+    </a>
+
+    <div class="row g-4">
+      <!-- Info garage -->
+      <div class="col-lg-4">
+        <div class="card shadow-sm mb-4">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="fw-bold"><i class="fas fa-warehouse me-2"></i>Profil garage</span>
+            {% if garage.is_active %}
+            <span class="badge bg-success">Visible</span>
+            {% else %}
+            <span class="badge bg-danger">Invisible</span>
+            {% endif %}
+          </div>
+          <div class="card-body">
+            {% if garage.logo %}
+            <img src="{{ garage.logo.url }}" alt="Logo" height="60"
+                 class="border rounded mb-3">
+            {% endif %}
+            <dl class="small mb-0">
+              <dt class="text-muted">Nom</dt>
+              <dd class="fw-bold">{{ garage.name }}</dd>
+              <dt class="text-muted">Ville</dt>
+              <dd>{{ garage.city }}</dd>
+              <dt class="text-muted">Adresse</dt>
+              <dd>{{ garage.address }}</dd>
+              <dt class="text-muted">Téléphone</dt>
+              <dd>{{ garage.phone_number|default:"—" }}</dd>
+              <dt class="text-muted">Site web</dt>
+              <dd>
+                {% if garage.website %}
+                <a href="{{ garage.website }}" target="_blank">{{ garage.website }}</a>
+                {% else %}—{% endif %}
+              </dd>
+              <dt class="text-muted">Coordonnées GPS</dt>
+              <dd>{{ garage.latitude }}, {{ garage.longitude }}</dd>
+              <dt class="text-muted">Statut ouverture</dt>
+              <dd>
+                {% if garage.is_open %}
+                <span class="badge bg-success">Ouvert</span>
+                {% else %}
+                <span class="badge bg-secondary">Fermé</span>
+                {% endif %}
+              </dd>
+              <dt class="text-muted">Créé le</dt>
+              <dd>{{ garage.created_at|date:"d/m/Y" }}</dd>
+            </dl>
+          </div>
+          <!-- Action admin : toggle visibilité -->
+          <div class="card-body border-top">
+            <form method="post">
+              {% csrf_token %}
+              <button type="submit" name="action" value="toggle_active"
+                      class="btn w-100 {% if garage.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}"
+                      onclick="return confirm('Confirmer cette action ?')">
+                {% if garage.is_active %}
+                <i class="fas fa-eye-slash"></i> Rendre invisible
+                {% else %}
+                <i class="fas fa-eye"></i> Rendre visible
+                {% endif %}
+              </button>
+            </form>
+            <a href="{% url 'garages:garage_detail' garage.pk %}"
+               class="btn btn-outline-primary w-100 mt-2" target="_blank">
+              <i class="fas fa-external-link-alt"></i> Voir sur le site
+            </a>
+          </div>
+        </div>
+
+        <!-- Garagiste -->
+        <div class="card shadow-sm">
+          <div class="card-header">
+            <span class="fw-bold"><i class="fas fa-user me-2"></i>Garagiste</span>
+          </div>
+          <div class="card-body small">
+            <dl class="mb-0">
+              <dt class="text-muted">Nom d'utilisateur</dt>
+              <dd>
+                <a href="{% url 'admin_custom:user_detail' garage.user.pk %}">
+                  {{ garage.user.username }}
+                </a>
+              </dd>
+              <dt class="text-muted">Email</dt>
+              <dd>{{ garage.user.email|default:"—" }}</dd>
+              <dt class="text-muted">Téléphone</dt>
+              <dd>{{ garage.user.phone_number|default:"—" }}</dd>
+              <dt class="text-muted">Compte</dt>
+              <dd>
+                {% if garage.user.is_active %}
+                <span class="badge bg-success">Actif</span>
+                {% else %}
+                <span class="badge bg-danger">Inactif</span>
+                {% endif %}
+              </dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <!-- Abonnements + Avis -->
+      <div class="col-lg-8">
+
+        <!-- Abonnement actif -->
+        {% if active_sub %}
+        <div class="card shadow-sm mb-4" style="border-left:4px solid #1E7145;">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h6 class="mb-1 fw-bold text-success">
+                  <i class="fas fa-crown"></i> Abonnement actif : {{ active_sub.plan.name }}
+                </h6>
+                <small class="text-muted">
+                  Du {{ active_sub.start_date|date:"d/m/Y" }}
+                  au {{ active_sub.end_date|date:"d/m/Y" }}
+                </small>
+              </div>
+              <div class="text-end">
+                <div class="fw-bold fs-5
+                  {% if active_sub.days_remaining <= 7 %}text-danger
+                  {% elif active_sub.days_remaining <= 30 %}text-warning
+                  {% else %}text-success{% endif %}">
+                  {{ active_sub.days_remaining }}j restants
+                </div>
+                <small class="text-muted">{{ active_sub.plan.price|floatformat:0 }} FCFA</small>
+              </div>
+            </div>
+            {% with total=active_sub.plan.duration_days rem=active_sub.days_remaining %}
+            <div class="progress mt-3" style="height:8px;">
+              <div class="progress-bar
+                {% if rem <= 7 %}bg-danger{% elif rem <= 30 %}bg-warning{% else %}bg-success{% endif %}"
+                style="width:{% widthratio rem total 100 %}%;"></div>
+            </div>
+            {% endwith %}
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Historique abonnements -->
+        <div class="card shadow-sm mb-4">
+          <div class="card-header">
+            <span class="fw-bold"><i class="fas fa-history me-2"></i>Historique abonnements</span>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover mb-0 small">
+              <thead class="table-light">
+                <tr>
+                  <th>Formule</th>
+                  <th>Statut</th>
+                  <th>Début</th>
+                  <th>Fin</th>
+                  <th>Réf. paiement</th>
+                  <th>Montant</th>
+                  <th>Validé par</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for s in subs %}
+                <tr>
+                  <td>{{ s.plan.name }}</td>
+                  <td>
+                    <span class="badge
+                      {% if s.status == 'actif' %}bg-success
+                      {% elif s.status == 'en_attente' %}bg-warning text-dark
+                      {% elif s.status == 'expire' %}bg-secondary
+                      {% else %}bg-danger{% endif %}">
+                      {{ s.get_status_display }}
+                    </span>
+                  </td>
+                  <td>{{ s.start_date|date:"d/m/Y"|default:"—" }}</td>
+                  <td>{{ s.end_date|date:"d/m/Y"|default:"—" }}</td>
+                  <td>
+                    {% for p in s.payments.all %}
+                    <code class="small">{{ p.reference }}</code>
+                    {% empty %}—{% endfor %}
+                  </td>
+                  <td>
+                    {% for p in s.payments.all %}
+                    {% if p.status == 'valide' %}
+                    <strong>{{ p.amount|floatformat:0 }} F</strong>
+                    {% endif %}
+                    {% endfor %}
+                  </td>
+                  <td>
+                    {% for p in s.payments.all %}
+                    {{ p.confirmed_by.username|default:"—" }}
+                    {% endfor %}
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="7" class="text-center text-muted py-3">
+                    Aucun abonnement enregistré.
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Avis reçus -->
+        <div class="card shadow-sm">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="fw-bold"><i class="fas fa-star me-2 text-warning"></i>Avis reçus</span>
+            <span class="badge bg-warning text-dark">{{ reviews|length }} avis</span>
+          </div>
+          {% if reviews %}
+          <div class="list-group list-group-flush">
+            {% for r in reviews %}
+            <div class="list-group-item">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <span class="fw-semibold small">{{ r.user.username }}</span>
+                  <span class="text-muted small ms-2">{{ r.created_at|date:"d/m/Y" }}</span>
+                  {% if r.is_verified %}
+                  <span class="badge bg-success ms-1" style="font-size:.7rem;">Vérifié</span>
+                  {% endif %}
+                </div>
+                <div>
+                  {% for i in "12345" %}
+                  <i class="fas fa-star {% if forloop.counter <= r.rating %}text-warning{% else %}text-muted{% endif %}"
+                     style="font-size:.75rem;"></i>
+                  {% endfor %}
+                </div>
+              </div>
+              {% if r.title %}
+              <div class="small fw-semibold mt-1">{{ r.title }}</div>
+              {% endif %}
+              <div class="small text-muted mt-1">{{ r.comment|truncatechars:120 }}</div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="card-body text-center text-muted py-4">
+            Aucun avis pour ce garage.
+          </div>
+          {% endif %}
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

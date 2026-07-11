@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+{% block title %}{{ u.username }} – Admin AutoRepair{% endblock %}
+{% block content %}
+<div class="d-flex" style="min-height:calc(100vh - 56px);">
+  {% include 'admin_custom/sidebar.html' with active='users' %}
+  <div style="padding:2rem;flex-grow:1;">
+    <a href="{% url 'admin_custom:users' %}" class="btn btn-sm btn-outline-secondary mb-3">
+      <i class="fas fa-arrow-left"></i> Retour
+    </a>
+
+    <div class="row g-4">
+      <!-- Infos utilisateur -->
+      <div class="col-lg-4">
+        <div class="card shadow-sm">
+          <div class="card-body text-center pt-4">
+            <div style="width:70px;height:70px;border-radius:50%;background:#EFF4FB;
+                        display:flex;align-items:center;justify-content:center;
+                        margin:0 auto 1rem;font-size:1.8rem;color:#1F3864;">
+              <i class="fas fa-user-circle"></i>
+            </div>
+            <h5 class="fw-bold mb-1">{{ u.username }}</h5>
+            <p class="text-muted small mb-2">{{ u.email|default:"Pas d'email" }}</p>
+            <span class="badge {% if u.role == 'garage' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %} mb-3">
+              {% if u.role == 'garage' %}Garagiste{% else %}Client{% endif %}
+            </span>
+            {% if u.is_staff %}<br><span class="badge bg-danger mb-3">Staff</span>{% endif %}
+          </div>
+          <div class="card-body border-top pt-3">
+            <dl class="row mb-0 small">
+              <dt class="col-5 text-muted">Téléphone</dt>
+              <dd class="col-7">{{ u.phone_number|default:"—" }}</dd>
+              <dt class="col-5 text-muted">Inscrit le</dt>
+              <dd class="col-7">{{ u.date_joined|date:"d/m/Y" }}</dd>
+              <dt class="col-5 text-muted">Dernière co.</dt>
+              <dd class="col-7">{{ u.last_login|date:"d/m/Y"|default:"Jamais" }}</dd>
+              <dt class="col-5 text-muted">Statut</dt>
+              <dd class="col-7">
+                {% if u.is_active %}
+                <span class="badge bg-success">Actif</span>
+                {% else %}
+                <span class="badge bg-danger">Inactif</span>
+                {% endif %}
+              </dd>
+            </dl>
+          </div>
+          <!-- Actions -->
+          <div class="card-body border-top">
+            <form method="post" class="d-grid gap-2">
+              {% csrf_token %}
+              <button type="submit" name="action" value="toggle_active"
+                      class="btn btn-sm {% if u.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}"
+                      onclick="return confirm('Confirmer cette action ?')">
+                {% if u.is_active %}
+                <i class="fas fa-ban"></i> Désactiver le compte
+                {% else %}
+                <i class="fas fa-check"></i> Activer le compte
+                {% endif %}
+              </button>
+              {% if not u.is_superuser %}
+              <button type="submit" name="action" value="toggle_staff"
+                      class="btn btn-sm btn-outline-secondary"
+                      onclick="return confirm('Modifier les droits staff ?')">
+                <i class="fas fa-shield-alt"></i>
+                {% if u.is_staff %}Retirer droits staff{% else %}Donner droits staff{% endif %}
+              </button>
+              {% endif %}
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Garage & Abonnements (si garagiste) -->
+      <div class="col-lg-8">
+        {% if garage %}
+        <div class="card shadow-sm mb-4">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="fw-bold"><i class="fas fa-warehouse me-2"></i>Garage</span>
+            <a href="{% url 'admin_custom:garage_detail' garage.pk %}"
+               class="btn btn-sm btn-outline-primary">Voir détail</a>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-sm-6">
+                <dl class="mb-0 small">
+                  <dt class="text-muted">Nom</dt>
+                  <dd class="fw-bold">{{ garage.name }}</dd>
+                  <dt class="text-muted">Ville</dt>
+                  <dd>{{ garage.city }}</dd>
+                  <dt class="text-muted">Adresse</dt>
+                  <dd>{{ garage.address }}</dd>
+                </dl>
+              </div>
+              <div class="col-sm-6">
+                <dl class="mb-0 small">
+                  <dt class="text-muted">Statut visibilité</dt>
+                  <dd>
+                    {% if garage.is_active %}
+                    <span class="badge bg-success">Visible</span>
+                    {% else %}
+                    <span class="badge bg-danger">Invisible</span>
+                    {% endif %}
+                  </dd>
+                  <dt class="text-muted">Téléphone</dt>
+                  <dd>{{ garage.phone_number|default:"—" }}</dd>
+                  <dt class="text-muted">Créé le</dt>
+                  <dd>{{ garage.created_at|date:"d/m/Y" }}</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Abonnements -->
+        <div class="card shadow-sm mb-4">
+          <div class="card-header">
+            <span class="fw-bold"><i class="fas fa-crown me-2"></i>Abonnements</span>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover mb-0 small">
+              <thead class="table-light">
+                <tr><th>Formule</th><th>Statut</th><th>Début</th><th>Fin</th><th>Montant</th></tr>
+              </thead>
+              <tbody>
+                {% for s in subs %}
+                <tr>
+                  <td>{{ s.plan.name }}</td>
+                  <td>
+                    <span class="badge {% if s.status == 'actif' %}bg-success{% elif s.status == 'en_attente' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                      {{ s.get_status_display }}
+                    </span>
+                  </td>
+                  <td>{{ s.start_date|date:"d/m/Y"|default:"—" }}</td>
+                  <td>{{ s.end_date|date:"d/m/Y"|default:"—" }}</td>
+                  <td>
+                    {% for p in s.payments.all %}
+                      {% if p.status == 'valide' %}{{ p.amount|floatformat:0 }} F{% endif %}
+                    {% endfor %}
+                  </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center text-muted py-3">Aucun abonnement</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Paiements -->
+        <div class="card shadow-sm">
+          <div class="card-header">
+            <span class="fw-bold"><i class="fas fa-receipt me-2"></i>Paiements</span>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover mb-0 small">
+              <thead class="table-light">
+                <tr><th>Référence</th><th>Opérateur</th><th>Numéro</th><th>Montant</th><th>Statut</th><th>Date</th></tr>
+              </thead>
+              <tbody>
+                {% for p in payments %}
+                <tr>
+                  <td><code>{{ p.reference }}</code></td>
+                  <td>{{ p.get_method_display }}</td>
+                  <td>{{ p.phone_number }}</td>
+                  <td class="fw-bold">{{ p.amount|floatformat:0 }} F</td>
+                  <td>
+                    <span class="badge {% if p.status == 'valide' %}bg-success{% elif p.status == 'en_attente' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                      {{ p.get_status_display }}
+                    </span>
+                  </td>
+                  <td>{{ p.created_at|date:"d/m/Y" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center text-muted py-3">Aucun paiement</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% else %}
+        <div class="card shadow-sm">
+          <div class="card-body text-center py-5 text-muted">
+            <i class="fas fa-user fa-3x mb-3"></i>
+            <p>Compte propriétaire de véhicule. Aucun garage associé.</p>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

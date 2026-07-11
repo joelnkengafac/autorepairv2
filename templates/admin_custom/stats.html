@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% block title %}Statistiques – Admin AutoRepair{% endblock %}
+
+{% block extra_css %}
+<style>
+.chart-bar { background: linear-gradient(180deg,#2E75B6,#1F3864);
+             border-radius:6px 6px 0 0; transition:all .2s; }
+.chart-bar:hover { opacity:.85; }
+.chart-container { display:flex; align-items:flex-end; gap:10px;
+                    height:220px; padding:1rem 0; }
+.chart-col { flex:1; display:flex; flex-direction:column;
+             align-items:center; justify-content:flex-end; height:100%; }
+.chart-val { font-size:.75rem; font-weight:700; color:#1F3864; margin-bottom:4px; }
+.chart-lbl { font-size:.72rem; color:#666; margin-top:6px; }
+.operator-bar { height:32px; border-radius:6px; overflow:hidden; display:flex; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex" style="min-height:calc(100vh - 56px);">
+  {% include 'admin_custom/sidebar.html' with active='stats' %}
+  <div style="padding:2rem;flex-grow:1;">
+    <h4 class="fw-bold mb-1"><i class="fas fa-chart-bar"></i> Statistiques</h4>
+    <p class="text-muted mb-4">Analyse des revenus et performances de la plateforme</p>
+
+    <div class="row g-4">
+      <!-- Évolution mensuelle -->
+      <div class="col-lg-8">
+        <div class="card shadow-sm h-100">
+          <div class="card-header fw-bold">
+            <i class="fas fa-chart-line me-2"></i>Revenus des 6 derniers mois
+          </div>
+          <div class="card-body">
+            {% with max_val=100000 %}
+            <div class="chart-container">
+              {% for m in monthly %}
+              <div class="chart-col">
+                <div class="chart-val">{{ m.total|floatformat:0 }}</div>
+                <div class="chart-bar" style="width:100%;
+                  height: {% if m.total > 0 %}{% widthratio m.total 100000 200 %}{% else %}2{% endif %}px;
+                  max-height:200px;"></div>
+                <div class="chart-lbl">{{ m.month }}</div>
+              </div>
+              {% endfor %}
+            </div>
+            {% endwith %}
+            <p class="text-muted small text-center mt-2 mb-0">Montants en FCFA</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Répartition opérateurs -->
+      <div class="col-lg-4">
+        <div class="card shadow-sm h-100">
+          <div class="card-header fw-bold">
+            <i class="fas fa-mobile-alt me-2"></i>Répartition par opérateur
+          </div>
+          <div class="card-body">
+            {% with total=orange_total|add:mtn_total %}
+            <div class="operator-bar mb-3">
+              {% if total > 0 %}
+              <div style="background:#FF6600;width:{% widthratio orange_total total 100 %}%;"
+                   class="d-flex align-items-center justify-content-center text-white small fw-bold">
+                {% widthratio orange_total total 100 %}%
+              </div>
+              <div style="background:#FFCC00;width:{% widthratio mtn_total total 100 %}%;"
+                   class="d-flex align-items-center justify-content-center small fw-bold">
+                {% widthratio mtn_total total 100 %}%
+              </div>
+              {% else %}
+              <div style="background:#eee;width:100%;" class="text-center text-muted small py-2">
+                Aucune donnée
+              </div>
+              {% endif %}
+            </div>
+            {% endwith %}
+
+            <div class="d-flex justify-content-between mb-2">
+              <span>🟠 Orange Money</span>
+              <strong>{{ orange_total|floatformat:0 }} FCFA</strong>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span>🟡 MTN MoMo</span>
+              <strong>{{ mtn_total|floatformat:0 }} FCFA</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Revenus par formule -->
+      <div class="col-12">
+        <div class="card shadow-sm">
+          <div class="card-header fw-bold">
+            <i class="fas fa-crown me-2"></i>Revenus par formule d'abonnement
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Formule</th>
+                  <th>Nombre de paiements</th>
+                  <th>Revenu total</th>
+                  <th>Revenu moyen</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for p in revenue_by_plan %}
+                <tr>
+                  <td class="fw-semibold">{{ p.subscription__plan__name }}</td>
+                  <td>{{ p.count }}</td>
+                  <td class="fw-bold text-primary">{{ p.total|floatformat:0 }} FCFA</td>
+                  <td>
+                    {% if p.count > 0 %}
+                    {{ p.total|floatformat:0|default:0 }} FCFA ÷ {{ p.count }}
+                    {% endif %}
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="4" class="text-center text-muted py-4">
+                    Aucune donnée de revenu disponible.
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

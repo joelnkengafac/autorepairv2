@@ -1,0 +1,383 @@
+{% extends 'base.html' %}
+{% block title %}Tableau de bord Admin – AutoRepair{% endblock %}
+
+{% block extra_css %}
+<style>
+.kpi-card { border-radius:12px; border:none; box-shadow:0 2px 12px rgba(0,0,0,.08); }
+.kpi-icon { width:52px; height:52px; border-radius:12px; display:flex;
+            align-items:center; justify-content:center; font-size:1.4rem; }
+.kpi-val  { font-size:2rem; font-weight:800; line-height:1; }
+.kpi-lbl  { font-size:.82rem; color:#666; }
+.section-hd { font-size:1rem; font-weight:700; color:#1F3864;
+              border-bottom:2px solid #1F3864; padding-bottom:5px; margin-bottom:1rem; }
+.alert-row { background:#FFFDF0; }
+.admin-sidebar { background:#1F3864; min-height:100vh; padding:1.5rem 0; }
+.sidebar-link { display:flex; align-items:center; gap:.75rem; padding:.65rem 1.5rem;
+                color:rgba(255,255,255,.75); text-decoration:none; font-size:.92rem;
+                transition:all .15s; border-left:3px solid transparent; }
+.sidebar-link:hover,.sidebar-link.active {
+  background:rgba(255,255,255,.1); color:#fff;
+  border-left-color:#C9A84C; }
+.sidebar-link i { width:18px; text-align:center; }
+.sidebar-badge { margin-left:auto; }
+.content-area { padding:2rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex" style="min-height:calc(100vh - 56px);">
+
+  {% include 'admin_custom/sidebar.html' with active='dashboard' %}
+
+  <!-- ── CONTENU ─────────────────────────────────────────────────────────── -->
+  <div class="content-area flex-grow-1">
+
+    <h4 class="fw-bold mb-1">Tableau de bord</h4>
+    <p class="text-muted mb-4">Vue d'ensemble de la plateforme AutoRepair</p>
+
+    <!-- Alerte paiements en attente -->
+    {% if pay_pending > 0 %}
+    <div class="alert alert-warning d-flex align-items-center mb-4">
+      <i class="fas fa-exclamation-circle fa-2x me-3"></i>
+      <div>
+        <strong>{{ pay_pending }} paiement{{ pay_pending|pluralize }} en attente</strong><br>
+        <a href="{% url 'subscription:admin_payments' %}" class="alert-link">
+          Traiter maintenant <i class="fas fa-arrow-right"></i>
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if sub_expiring > 0 %}
+    <div class="alert alert-info d-flex align-items-center mb-4">
+      <i class="fas fa-clock fa-2x me-3"></i>
+      <div>
+        <strong>{{ sub_expiring }} abonnement{{ sub_expiring|pluralize }} expire{{ sub_expiring|pluralize:"nt" }} dans moins de 7 jours</strong><br>
+        <a href="{% url 'subscription:admin_subscriptions' %}" class="alert-link">
+          Voir les détails
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- ── KPIs ROW 1 : Utilisateurs ──────────────────────────────────────── -->
+    <div class="section-hd"><i class="fas fa-users me-2"></i>Utilisateurs</div>
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="card kpi-card p-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="kpi-icon" style="background:#EFF4FB;">
+              <i class="fas fa-users text-primary"></i>
+            </div>
+            <div>
+              <div class="kpi-val">{{ total_users }}</div>
+              <div class="kpi-lbl">Total utilisateurs</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card kpi-card p-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="kpi-icon" style="background:#D6EFE2;">
+              <i class="fas fa-user text-success"></i>
+            </div>
+            <div>
+              <div class="kpi-val text-success">{{ total_clients }}</div>
+              <div class="kpi-lbl">Propriétaires</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card kpi-card p-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="kpi-icon" style="background:#FFF3CD;">
+              <i class="fas fa-warehouse" style="color:#856404;"></i>
+            </div>
+            <div>
+              <div class="kpi-val" style="color:#856404;">{{ total_garages }}</div>
+              <div class="kpi-lbl">Garagistes inscrits</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card kpi-card p-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="kpi-icon" style="background:#FCE4D6;">
+              <i class="fas fa-user-plus" style="color:#C55A11;"></i>
+            </div>
+            <div>
+              <div class="kpi-val" style="color:#C55A11;">+{{ new_users_7 }}</div>
+              <div class="kpi-lbl">Nouveaux (7j)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── KPIs ROW 2 : Abonnements ───────────────────────────────────────── -->
+    <div class="section-hd"><i class="fas fa-crown me-2"></i>Abonnements</div>
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="card kpi-card p-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="kpi-icon" style="background:#D6EFE2;">
+              <i class="fas fa-check-circle text-success"></i>
+            </div>
+            <div>
+              <div class="kpi-val text-success">{{ sub_active }}</div>
+              <div class="kpi-lbl">Abonnements actifs</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card kpi-card p-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="kpi-icon" style="background:#EFF4FB;">
+              <i class="fas fa-warehouse text-primary"></i>
+            </div>
+            <div>
+              <div class="kpi-val text-primary">{{ total_garages_active }}</div>
+              <div class="kpi-lbl">Garages visibles</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card kpi-card p-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="kpi-icon" style="background:#FFF3CD;">
+              <i class="fas fa-clock" style="color:#856404;"></i>
+            </div>
+            <div>
+              <div class="kpi-val" style="color:#856404;">{{ sub_expiring }}</div>
+              <div class="kpi-lbl">Expire sous 7j</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card kpi-card p-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="kpi-icon" style="background:#F8D7DA;">
+              <i class="fas fa-times-circle text-danger"></i>
+            </div>
+            <div>
+              <div class="kpi-val text-danger">{{ sub_expired_30 }}</div>
+              <div class="kpi-lbl">Expirés (30j)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── KPIs ROW 3 : Revenus ───────────────────────────────────────────── -->
+    <div class="section-hd"><i class="fas fa-coins me-2"></i>Revenus</div>
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="card kpi-card p-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="kpi-icon" style="background:#FFF3CD;">
+              <i class="fas fa-hourglass-half" style="color:#856404;"></i>
+            </div>
+            <div>
+              <div class="kpi-val" style="color:#856404;">{{ pay_pending }}</div>
+              <div class="kpi-lbl">Paiements en attente</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card kpi-card p-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="kpi-icon" style="background:#D6EFE2;">
+              <i class="fas fa-check text-success"></i>
+            </div>
+            <div>
+              <div class="kpi-val text-success">{{ pay_validated }}</div>
+              <div class="kpi-lbl">Validés (30j)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card kpi-card p-3" style="border-left:4px solid #C9A84C!important;">
+          <div class="d-flex align-items-center gap-3">
+            <div class="kpi-icon" style="background:#FFF8E7;">
+              <i class="fas fa-coins" style="color:#C9A84C;"></i>
+            </div>
+            <div>
+              <div class="kpi-val" style="color:#C9A84C;">{{ revenue_30|floatformat:0 }}</div>
+              <div class="kpi-lbl">FCFA encaissés (30j)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-2">
+        <div class="card kpi-card p-3">
+          <div class="kpi-val" style="font-size:1.1rem;color:#1F3864;">{{ revenue_total|floatformat:0 }}</div>
+          <div class="kpi-lbl">FCFA total</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CONTENU EN 2 COLONNES ──────────────────────────────────────────── -->
+    <div class="row g-4">
+
+      <!-- Paiements à traiter -->
+      <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="fw-bold"><i class="fas fa-cash-register me-2"></i>Paiements en attente</span>
+            <a href="{% url 'subscription:admin_payments' %}" class="btn btn-sm btn-primary">Tout voir</a>
+          </div>
+          <div class="card-body p-0">
+            {% if recent_payments %}
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Référence</th>
+                    <th>Garage</th>
+                    <th>Montant</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for p in recent_payments %}
+                  <tr>
+                    <td><code class="text-primary">{{ p.reference }}</code></td>
+                    <td>{{ p.subscription.garage.name }}</td>
+                    <td class="fw-bold">{{ p.amount|floatformat:0 }} F</td>
+                    <td>
+                      <a href="{% url 'subscription:admin_confirm_payment' p.pk %}"
+                         class="btn btn-xs btn-primary btn-sm py-0 px-2">
+                        Traiter
+                      </a>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4 text-muted">
+              <i class="fas fa-check-double text-success fa-2x mb-2"></i>
+              <p class="mb-0">Aucun paiement en attente</p>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Abonnements expirant bientôt -->
+      <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="fw-bold"><i class="fas fa-clock me-2 text-warning"></i>Expire sous 7 jours</span>
+            <a href="{% url 'subscription:admin_subscriptions' %}" class="btn btn-sm btn-outline-secondary">Tout voir</a>
+          </div>
+          <div class="card-body p-0">
+            {% if expiring_soon %}
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead class="table-light">
+                  <tr><th>Garage</th><th>Formule</th><th>Expiration</th><th>J. restants</th></tr>
+                </thead>
+                <tbody>
+                  {% for s in expiring_soon %}
+                  <tr class="alert-row">
+                    <td>{{ s.garage.name }}</td>
+                    <td>{{ s.plan.name }}</td>
+                    <td>{{ s.end_date|date:"d/m/Y" }}</td>
+                    <td>
+                      <span class="badge bg-danger">{{ s.days_remaining }}j</span>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4 text-muted">
+              <i class="fas fa-smile text-success fa-2x mb-2"></i>
+              <p class="mb-0">Aucun abonnement n'expire prochainement</p>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Derniers utilisateurs -->
+      <div class="col-lg-6">
+        <div class="card shadow-sm">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="fw-bold"><i class="fas fa-user-plus me-2"></i>Derniers inscrits</span>
+            <a href="{% url 'admin_custom:users' %}" class="btn btn-sm btn-outline-secondary">Tout voir</a>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead class="table-light">
+                  <tr><th>Utilisateur</th><th>Rôle</th><th>Date</th></tr>
+                </thead>
+                <tbody>
+                  {% for u in recent_users %}
+                  <tr>
+                    <td>
+                      <a href="{% url 'admin_custom:user_detail' u.pk %}">
+                        {{ u.username }}
+                      </a>
+                    </td>
+                    <td>
+                      <span class="badge {% if u.role == 'garage' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %}">
+                        {{ u.get_role_display|default:u.role }}
+                      </span>
+                    </td>
+                    <td><small>{{ u.date_joined|date:"d/m/Y" }}</small></td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Répartition par formule -->
+      <div class="col-lg-6">
+        <div class="card shadow-sm">
+          <div class="card-header">
+            <span class="fw-bold"><i class="fas fa-chart-pie me-2"></i>Abonnements actifs par formule</span>
+          </div>
+          <div class="card-body">
+            {% for p in plans_stats %}
+            <div class="mb-3">
+              <div class="d-flex justify-content-between mb-1">
+                <span class="fw-semibold">{{ p.name }}</span>
+                <span class="text-muted">{{ p.count_active }} actif{{ p.count_active|pluralize }}</span>
+              </div>
+              {% if sub_active > 0 %}
+              {% widthratio p.count_active sub_active 100 as pct %}
+              {% else %}
+              {% with pct=0 %}{% endwith %}
+              {% endif %}
+              <div class="progress" style="height:8px;">
+                <div class="progress-bar bg-primary" style="width:{% if sub_active > 0 %}{% widthratio p.count_active sub_active 100 %}{% else %}0{% endif %}%;"></div>
+              </div>
+              <small class="text-muted">{{ p.price|floatformat:0 }} FCFA / formule</small>
+            </div>
+            {% empty %}
+            <p class="text-muted text-center">Aucune donnée disponible</p>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /row -->
+  </div><!-- /content-area -->
+</div>
+{% endblock %}
